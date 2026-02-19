@@ -1,0 +1,5 @@
+{
+  "jwtSecret": "mkulima_net_jwt_secret_key_2026_very_long_secret_for_better_security",
+  "mongoURI": "mongodb://localhost:27017/mkulimanet",
+  "jwtExpiration": "7d"
+}
