@@ -105,7 +105,7 @@ export default function CreatePostPage() {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'x-auth-token': token
+            'x-auth-token': `${token}`
           },
           body: formData
         });
@@ -129,7 +129,7 @@ export default function CreatePostPage() {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'x-auth-token': token
+          'x-auth-token': `${token}`
         },
         body: JSON.stringify({
           content,
