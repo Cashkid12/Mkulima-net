@@ -2,7 +2,7 @@
 
 import { useState, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, MapPin, Hash, Tag, Users, Package, Store, Globe, Lock, Eye, X, Image as ImageIcon } from 'lucide-react';
+import { Camera, MapPin, Hash, Tag, Users, Package, Store, Globe, Eye, X } from 'lucide-react';
 
 export default function CreatePostPage() {
   const router = useRouter();
@@ -98,6 +98,9 @@ export default function CreatePostPage() {
         });
 
         const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
         const response = await fetch('http://localhost:5001/api/posts/upload-media', {
           method: 'POST',
           headers: {
@@ -118,6 +121,9 @@ export default function CreatePostPage() {
 
       // Create the post
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
       const response = await fetch('http://localhost:5001/api/posts', {
         method: 'POST',
         headers: {
@@ -153,7 +159,7 @@ export default function CreatePostPage() {
       setHashtags([]);
       router.push('/dashboard/feed');
     } catch (err) {
-      setError(err.message || 'An error occurred while creating the post');
+      setError((err as Error).message || 'An error occurred while creating the post');
       console.error('Error creating post:', err);
     } finally {
       setLoading(false);
