@@ -1,7 +1,32 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@/interfaces/types';
+
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+  role: string;
+  profilePicture?: string;
+  coverPhoto?: string;
+  firstName?: string;
+  lastName?: string;
+  location?: string;
+  farmingCategory?: string[];
+  skills?: string[];
+  certifications?: Array<{
+    name: string;
+    issuer: string;
+    year: number;
+    certificateUrl?: string;
+  }>;
+  services?: string[];
+  farmSize?: string;
+  crops?: string[];
+  livestock?: string[];
+  yearsOfExperience?: number;
+  availabilityStatus?: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -16,21 +41,30 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('mkulima_user');
+      return storedUser ? JSON.parse(storedUser) : null;
+    }
+    return null;
+  });
+  
+  const [token, setToken] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('mkulima_token');
+    }
+    return null;
+  });
+  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on initial load
-    const storedToken = localStorage.getItem('mkulima_token');
-    const storedUser = localStorage.getItem('mkulima_user');
-
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
+    // Set loading to false after initial render
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 0);
     
-    setLoading(false);
+    return () => clearTimeout(timer);
   }, []);
 
   const login = async (email: string, password: string) => {
