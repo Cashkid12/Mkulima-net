@@ -53,7 +53,7 @@ export default function WeatherWidget() {
         }
 
         // Fetch current weather
-        const weatherResponse = await fetch('http://localhost:5001/api/weather/current', {
+        const weatherResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/weather/current`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'x-auth-token': token,
@@ -76,7 +76,7 @@ export default function WeatherWidget() {
         setWeather(weatherData);
 
         // Fetch forecast
-        const forecastResponse = await fetch('http://localhost:5001/api/weather/forecast', {
+        const forecastResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/weather/forecast`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'x-auth-token': token,

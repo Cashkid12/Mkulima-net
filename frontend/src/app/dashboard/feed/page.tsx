@@ -332,7 +332,7 @@ export default function FeedPage() {
       );
 
       // Backend call
-      const response = await fetch(`http://localhost:5001/api/posts/${postId}/like`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/like`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -373,7 +373,7 @@ export default function FeedPage() {
       );
 
       // Backend call
-      const response = await fetch(`http://localhost:5001/api/posts/${postId}/save`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/save`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

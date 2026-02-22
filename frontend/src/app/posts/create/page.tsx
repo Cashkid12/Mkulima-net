@@ -101,7 +101,7 @@ export default function CreatePostPage() {
         if (!token) {
           throw new Error('No authentication token found');
         }
-        const response = await fetch('http://localhost:5001/api/posts/upload-media', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/upload-media`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -124,7 +124,7 @@ export default function CreatePostPage() {
       if (!token) {
         throw new Error('No authentication token found');
       }
-      const response = await fetch('http://localhost:5001/api/posts', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
