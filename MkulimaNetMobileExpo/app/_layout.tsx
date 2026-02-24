@@ -70,13 +70,27 @@ function RootLayoutNav() {
         {/* If not authenticated, show auth screens */}
         {!authState.token ? (
           <>
+            <Stack.Screen name="welcome" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="register" options={{ headerShown: false }} />
+            <Stack.Screen name="complete-profile" options={{ headerShown: true, title: 'Complete Profile' }} />
           </>
         ) : (
           <>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="complete-profile" options={{ headerShown: true, title: 'Complete Profile' }} />
+            <Stack.Screen name="notifications" options={{ headerShown: true, title: 'Notifications' }} />
+            <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
+            <Stack.Screen name="dashboard" options={{ headerShown: true, title: 'Dashboard' }} />
+            <Stack.Screen name="create-post" options={{ headerShown: true, title: 'Create Post' }} />
+            <Stack.Screen name="create-marketplace-listing" options={{ headerShown: true, title: 'Create Listing' }} />
+            <Stack.Screen name="post-job" options={{ headerShown: true, title: 'Post Job' }} />
+            <Stack.Screen name="job-details" options={{ headerShown: true, title: 'Job Details' }} />
+            <Stack.Screen name="employer-profile" options={{ headerShown: true, title: 'Employer Profile' }} />
+            <Stack.Screen name="job-application" options={{ headerShown: true, title: 'Apply for Job' }} />
+            <Stack.Screen name="my-jobs" options={{ headerShown: true, title: 'My Jobs' }} />
+            <Stack.Screen name="job-applications" options={{ headerShown: true, title: 'Job Applications' }} />
           </>
         )}
       </Stack>

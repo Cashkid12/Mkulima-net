@@ -1,125 +1,104 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Modal, TouchableOpacity } from 'react-native';
-import { Text } from '@/components/Themed';
-import { FontAwesome } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ThemedView } from '@/components/Themed';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function CreateScreen() {
-  const [modalVisible, setModalVisible] = useState(true);
+  const router = useRouter();
 
-  const handleAction = (action: string) => {
-    setModalVisible(false);
-    // Navigate to the appropriate screen based on action
-    // This would typically involve navigation to a form screen
-    console.log(`Selected action: ${action}`);
+  const handleCreatePost = () => {
+    router.push('/create-post');
+  };
+
+  const handleCreateMarketplaceListing = () => {
+    router.push('/create-marketplace-listing');
+  };
+
+  const handlePostJob = () => {
+    router.push('/post-job');
   };
 
   return (
-    <View style={styles.container}>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          onPress={() => setModalVisible(false)}
-        >
-          <View style={styles.bottomSheet}>
-            <View style={styles.handle} />
-            
-            <TouchableOpacity 
-              style={styles.actionOption}
-              onPress={() => handleAction('post')}
-            >
-              <FontAwesome name="rss" size={24} color="#1B5E20" />
-              <Text style={styles.actionText}>Create Post</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.actionOption}
-              onPress={() => handleAction('job')}
-            >
-              <FontAwesome name="briefcase" size={24} color="#1B5E20" />
-              <Text style={styles.actionText}>Post Job</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.actionOption}
-              onPress={() => handleAction('product')}
-            >
-              <FontAwesome name="shopping-cart" size={24} color="#1B5E20" />
-              <Text style={styles.actionText}>Add Marketplace Product</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.actionOption}
-              onPress={() => handleAction('community')}
-            >
-              <FontAwesome name="users" size={24} color="#1B5E20" />
-              <Text style={styles.actionText}>Create Community</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.actionOption, styles.cancelOption]}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
+    <ThemedView style={styles.container}>
+      <View style={styles.content}>
+        <MaterialIcons name="add-circle-outline" size={64} color="#1B5E20" style={styles.icon} />
+        <Text style={styles.title}>Create Content</Text>
+        <Text style={styles.subtitle}>Choose what you'd like to create</Text>
+        
+        <View style={styles.optionsContainer}>
+          <TouchableOpacity style={styles.optionButton} onPress={handleCreatePost}>
+            <MaterialIcons name="chat-bubble-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.optionText}>Create Post</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.optionButton} onPress={handleCreateMarketplaceListing}>
+            <MaterialIcons name="shopping-cart" size={24} color="#FFFFFF" />
+            <Text style={styles.optionText}>Create Listing</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.optionButton} onPress={handlePostJob}>
+            <MaterialIcons name="work-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.optionText}>Post a Job</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  bottomSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: 400,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  actionOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  cancelOption: {
-    borderBottomWidth: 0,
-    marginTop: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F5F5F5',
   },
-  actionText: {
-    fontSize: 16,
+  content: {
+    width: '90%',
+    maxWidth: 400,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  icon: {
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#111111',
-    marginLeft: 16,
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  cancelText: {
+  subtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  optionsContainer: {
+    width: '100%',
+    gap: 16,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1B5E20',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  optionText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    color: '#FF4444',
     fontWeight: '600',
+    marginLeft: 12,
   },
 });

@@ -1,16 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList, Text, TouchableOpacity, Image, RefreshControl } from 'react-native';
+import { StyleSheet, View, FlatList, Text, TouchableOpacity, Image, RefreshControl, Alert } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRouter } from 'expo-router';
 
 interface Product {
-  id: number;
-  title: string;
+  _id: string;
+  name: string;
+  description: string;
   price: number;
+  quantity: number;
+  category: string;
+  location: string;
+  condition: string;
   image: string;
-  seller: {
-    name: string;
+  user: {
+    _id: string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
+    profilePicture?: string;
   };
-  timeAgo: string;
+  createdAt: string;
 }
 
 interface Tab {
@@ -20,6 +30,7 @@ interface Tab {
 
 export default function MarketplaceScreen() {
   const { authState } = useAuth();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
@@ -29,6 +40,7 @@ export default function MarketplaceScreen() {
     { id: 'crops', label: 'Crops' },
     { id: 'livestock', label: 'Livestock' },
     { id: 'agrovet', label: 'Agrovet' },
+    { id: 'equipment', label: 'Equipment' },
   ];
 
   useEffect(() => {
@@ -37,19 +49,22 @@ export default function MarketplaceScreen() {
 
   const loadProducts = async () => {
     try {
-      // Simulate API call to get products
-      const response = await fetch(`http://localhost:5000/api/products?category=${activeTab}`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api'}/products?category=${activeTab}`, {
         headers: {
           'Authorization': `Bearer ${authState.token}`,
         },
       });
 
       if (response.ok) {
-        const data: Product[] = await response.json();
-        setProducts(data);
+        const data = await response.json();
+        setProducts(data.products || []);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to load products');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading products:', error);
+      Alert.alert('Error', error.message || 'Failed to load products');
     }
   };
 
@@ -61,13 +76,14 @@ export default function MarketplaceScreen() {
 
   const renderProduct = ({ item }: { item: Product }) => (
     <TouchableOpacity style={styles.productCard}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
+      <Image source={{ uri: item.image || 'https://via.placeholder.com/300x200' }} style={styles.productImage} />
       <View style={styles.productInfo}>
-        <Text style={styles.productTitle}>{item.title}</Text>
+        <Text style={styles.productTitle} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.productDescription} numberOfLines={2}>{item.description}</Text>
         <Text style={styles.productPrice}>KSh {item.price.toLocaleString()}</Text>
         <View style={styles.sellerInfo}>
-          <Text style={styles.sellerName}>{item.seller.name}</Text>
-          <Text style={styles.postTime}>Posted {item.timeAgo}</Text>
+          <Text style={styles.sellerName}>{item.user.firstName || item.user.username}</Text>
+          <Text style={styles.postTime}>{new Date(item.createdAt).toLocaleDateString()}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -77,6 +93,12 @@ export default function MarketplaceScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Marketplace</Text>
+        <TouchableOpacity 
+          style={styles.createButton}
+          onPress={() => Alert.alert('Create Listing', 'Navigate to create listing screen')}
+        >
+          <Text style={styles.createButtonText}>+</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.tabsContainer}>
@@ -104,7 +126,7 @@ export default function MarketplaceScreen() {
       <FlatList
         data={products}
         renderItem={renderProduct}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item._id}
         contentContainerStyle={styles.productsList}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -196,5 +218,24 @@ const styles = StyleSheet.create({
   postTime: {
     fontSize: 12,
     color: '#999999',
+  },
+  productDescription: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  createButton: {
+    backgroundColor: '#1B5E20',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });
