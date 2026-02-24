@@ -1,5 +1,8 @@
 {
   "expo": {
+    "cli": {
+      "appVersionSource": "remote"
+    },
     "name": "MkulimaNetMobileExpo",
     "slug": "mkulima-net",
     "version": "1.0.0",
