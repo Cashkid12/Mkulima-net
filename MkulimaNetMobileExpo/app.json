@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "runtimeVersion": "1.0.0",
     "updates": {
-      "url": "https://u.expo.dev/3b3dc001-3ff5-4a84-865d-4f4896c8dd2a"
+      "url": "https://u.expo.dev/a94a127e-aaf8-4f52-976c-3e7b4bf64973"
     },
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -44,9 +44,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "3b3dc001-3ff5-4a84-865d-4f4896c8dd2a"
+        "projectId": "a94a127e-aaf8-4f52-976c-3e7b4bf64973"
       },
-      "projectId": "3b3dc001-3ff5-4a84-865d-4f4896c8dd2a",
+      "projectId": "a94a127e-aaf8-4f52-976c-3e7b4bf64973",
       "router": {}
     },
     "plugins": [
