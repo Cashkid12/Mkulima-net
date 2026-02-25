@@ -19,7 +19,8 @@ import {
   ExternalLink,
   AlertCircle,
   Loader2,
-  DollarSign
+  DollarSign,
+  Clock
 } from 'lucide-react';
 
 interface User {
