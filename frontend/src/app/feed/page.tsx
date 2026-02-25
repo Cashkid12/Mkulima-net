@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Bell, 
   MessageSquare, 
@@ -92,6 +93,7 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+  const router = useRouter();
 
   // Fetch posts from backend
   useEffect(() => {
@@ -111,8 +113,8 @@ export default function FeedPage() {
         // Determine feed type based on active tab
         const feedType = activeTab === 'following' ? 'following' : 'forYou';
         
-        // Call backend API to get posts - fix the endpoint to include /api/
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed?feedType=${feedType}&limit=20&offset=0`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${apiUrl}/feed?feedType=${feedType}&limit=20&offset=0`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -183,17 +185,17 @@ export default function FeedPage() {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = '/auth/login';
+        router.push('/auth/login');
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/react`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/posts/${postId}/react`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ type })
       });
 
       if (!response.ok) {
@@ -229,7 +231,8 @@ export default function FeedPage() {
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}/react`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/posts/${postId}/react`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -287,7 +290,8 @@ export default function FeedPage() {
       );
 
       // Backend call
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/follow/${userId}/follow`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/follow/${userId}/follow`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -306,7 +310,8 @@ export default function FeedPage() {
           const token = localStorage.getItem('token');
           if (!token) return;
 
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed?feedType=${activeTab === 'following' ? 'following' : 'forYou'}&limit=20&offset=0`, {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+          const response = await fetch(`${apiUrl}/feed?feedType=${activeTab === 'following' ? 'following' : 'forYou'}&limit=20&offset=0`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -342,69 +347,16 @@ export default function FeedPage() {
     }
   };
 
-  const handleReaction = async (postId: string, reactionType: Reaction['type']) => {
+  const handleReaction = async (postId: string, reactionType: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/auth/login');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = '/auth/login';
-        return;
-      }
-
-      // Optimistic update
-      setPosts(prevPosts => 
-        prevPosts.map(post => {
-          if (post.id === postId) {
-            const updatedReactions = [...post.reactionCounts];
-            const existingReactionIndex = updatedReactions.findIndex(r => r.userReacted);
-            
-            if (existingReactionIndex !== -1) {
-              // Replace existing reaction
-              updatedReactions[existingReactionIndex] = {
-                ...updatedReactions[existingReactionIndex],
-                userReacted: false
-              };
-              
-              // Add new reaction or update existing one
-              const newReactionIndex = updatedReactions.findIndex(r => r.type === reactionType);
-              if (newReactionIndex !== -1) {
-                updatedReactions[newReactionIndex] = {
-                  ...updatedReactions[newReactionIndex],
-                  count: updatedReactions[newReactionIndex].count + 1,
-                  userReacted: true
-                };
-              } else {
-                updatedReactions.push({
-                  type: reactionType,
-                  count: 1,
-                  userReacted: true
-                });
-              }
-            } else {
-              // Add new reaction
-              const newReactionIndex = updatedReactions.findIndex(r => r.type === reactionType);
-              if (newReactionIndex !== -1) {
-                updatedReactions[newReactionIndex] = {
-                  ...updatedReactions[newReactionIndex],
-                  count: updatedReactions[newReactionIndex].count + 1,
-                  userReacted: true
-                };
-              } else {
-                updatedReactions.push({
-                  type: reactionType,
-                  count: 1,
-                  userReacted: true
-                });
-              }
-            }
-            
-            return { ...post, reactionCounts: updatedReactions };
-          }
-          return post;
-        })
-      );
-
-      // Backend call
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed/${postId}/react`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/posts/${postId}/react`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -424,7 +376,8 @@ export default function FeedPage() {
           const token = localStorage.getItem('token');
           if (!token) return;
 
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed?feedType=${activeTab === 'following' ? 'following' : 'forYou'}&limit=20&offset=0`, {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+          const response = await fetch(`${apiUrl}/feed?feedType=${activeTab === 'following' ? 'following' : 'forYou'}&limit=20&offset=0`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

@@ -175,7 +175,8 @@ export default function PostJobPage() {
         deadline: formData.deadline
       };
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

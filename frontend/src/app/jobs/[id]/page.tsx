@@ -87,8 +87,14 @@ export default function JobDetailsPage() {
       try {
         setLoading(true);
         setError(null);
-        
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/${id}`, {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
+
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${apiUrl}/jobs/${id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

@@ -75,7 +75,8 @@ export default function MessagesPage() {
       return;
     }
 
-    const newSocket = io(`${process.env.NEXT_PUBLIC_API_URL.replace('/api', '')}`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const newSocket = io(`${apiUrl.replace('/api', '')}`, {
       auth: {
         token: token
       }
@@ -121,7 +122,8 @@ export default function MessagesPage() {
           return;
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${apiUrl}/conversations`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

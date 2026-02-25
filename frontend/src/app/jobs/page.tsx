@@ -126,11 +126,11 @@ export default function JobsPage() {
 
   // Fetch jobs
   const fetchJobs = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
-      
-      // Determine which endpoint to use based on filters
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       let url;
       const queryParams = new URLSearchParams();
       
@@ -138,7 +138,7 @@ export default function JobsPage() {
           filters.category !== 'all' || filters.experience !== 'all' || 
           filters.minSalary || filters.maxSalary) {
         // Use search endpoint for complex filtering
-        url = `${process.env.NEXT_PUBLIC_API_URL}/jobs/search`;
+        url = `${apiUrl}/jobs/search`;
         
         if (filters.search) {
           queryParams.append('q', filters.search);
@@ -163,7 +163,7 @@ export default function JobsPage() {
         }
       } else {
         // Use regular jobs endpoint
-        url = `${process.env.NEXT_PUBLIC_API_URL}/jobs`;
+        url = `${apiUrl}/jobs`;
       }
       
       if (queryParams.toString()) {

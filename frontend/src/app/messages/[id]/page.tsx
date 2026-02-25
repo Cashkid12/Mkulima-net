@@ -136,7 +136,8 @@ export default function ChatPage() {
         }
 
         // Fetch conversation details
-        const conversationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations/${id}`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const conversationResponse = await fetch(`${apiUrl}/conversations/${id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ export default function ChatPage() {
         setConversation(conversationData);
 
         // Fetch messages in conversation
-        const messagesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations/${id}/messages`, {
+        const messagesResponse = await fetch(`${apiUrl}/conversations/${id}/messages`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -232,7 +233,8 @@ export default function ChatPage() {
       }
 
       // Send message via API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -128,7 +128,8 @@ export default function CreatePostPage() {
       }
 
       // Create the post with the backend API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/posts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
