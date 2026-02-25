@@ -1,516 +1,541 @@
-'use client';
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  ArrowLeft,
-  Phone,
-  Video,
-  MoreVertical,
-  Send,
-  Paperclip,
-  Smile,
-  Check,
-  CheckCheck,
+  User,
   Clock,
-  Circle,
+  Check,
+  Paperclip,
+  Camera,
+  Send,
+  ArrowLeft,
+  AlertCircle,
   Loader2,
-  MapPin,
-  Store,
-  AlertCircle
+  MessageSquare,
+  ShoppingCart,
+  Briefcase
 } from 'lucide-react';
+import io from 'socket.io-client';
 
-// Types
-interface Message {
+interface User {
   id: string;
-  senderId: string;
-  content: string;
-  timestamp: string;
-  isRead: boolean;
-  type: 'text' | 'image';
-  imageUrl?: string;
-}
-
-interface Participant {
-  id: string;
+  username: string;
   firstName: string;
   lastName: string;
-  farmName?: string;
   profilePicture?: string;
   location?: string;
-  isOnline: boolean;
-  lastSeen?: string;
   verified: boolean;
 }
 
-// Mock data
-const mockParticipant: Participant = {
-  id: 'u2',
-  firstName: 'Mary',
-  lastName: 'Wanjiru',
-  farmName: 'Green Valley Dairy',
-  location: 'Nakuru County',
-  isOnline: true,
-  verified: true,
-  profilePicture: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'
-};
-
-const mockMessages: Message[] = [
-  {
-    id: '1',
-    senderId: 'u2',
-    content: 'Hello! I saw your post about dairy farming. I have some questions about feed management.',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-    type: 'text'
-  },
-  {
-    id: '2',
-    senderId: 'me',
-    content: 'Hi Mary! I would be happy to help. What would you like to know?',
-    timestamp: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-    type: 'text'
-  },
-  {
-    id: '3',
-    senderId: 'u2',
-    content: 'I am trying to improve milk production in my herd. Currently getting about 15 liters per cow per day.',
-    timestamp: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-    type: 'text'
-  },
-  {
-    id: '4',
-    senderId: 'me',
-    content: 'That is a good start. What type of feed are you currently using?',
-    timestamp: new Date(Date.now() - 21 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-    type: 'text'
-  },
-  {
-    id: '5',
-    senderId: 'u2',
-    content: 'Mostly napier grass and some commercial dairy meal. I have been thinking about adding silage.',
-    timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-    type: 'text'
-  },
-  {
-    id: '6',
-    senderId: 'me',
-    content: 'Silage is excellent for dairy cows. It provides consistent nutrition and can help increase milk production. I would recommend starting with maize silage.',
-    timestamp: new Date(Date.now() - 19 * 60 * 60 * 1000).toISOString(),
-    isRead: true,
-    type: 'text'
-  },
-  {
-    id: '7',
-    senderId: 'u2',
-    content: 'Thank you for the information about the dairy feeds. I will check with my supplier.',
-    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    isRead: false,
-    type: 'text'
-  }
-];
-
-// Helper functions
-function formatMessageTime(timestamp: string): string {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+interface Product {
+  id: string;
+  name: string;
+  images: string[];
 }
 
-function formatLastSeen(timestamp: string): string {
-  const now = new Date();
-  const date = new Date(timestamp);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minutes ago`;
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  if (diffDays === 1) return 'Yesterday';
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+interface Job {
+  id: string;
+  title: string;
+  companyName: string;
 }
 
-function shouldShowDateSeparator(currentMsg: Message, prevMsg: Message | null): boolean {
-  if (!prevMsg) return true;
-  
-  const currentDate = new Date(currentMsg.timestamp).toDateString();
-  const prevDate = new Date(prevMsg.timestamp).toDateString();
-  return currentDate !== prevDate;
+interface Message {
+  id: string;
+  conversationId: string;
+  senderId: User;
+  content: string;
+  messageType: string;
+  mediaUrl?: string;
+  fileName?: string;
+  readStatus: Record<string, boolean>;
+  createdAt: string;
 }
 
-function formatDateSeparator(timestamp: string): string {
-  const date = new Date(timestamp);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today';
-  }
-  if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
-  }
-  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+interface Conversation {
+  _id: string;
+  participants: User[];
+  relatedProductId?: string;
+  relatedJobId?: string;
+  lastMessage?: Message;
+  updatedAt: string;
 }
+
+type SocketClient = ReturnType<typeof io>;
 
 export default function ChatPage() {
-  const params = useParams();
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [participant, setParticipant] = useState<Participant | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [messageInput, setMessageInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState<string>('');
+  const [socket, setSocket] = useState<SocketClient | null>(null);
+  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [attachmentType, setAttachmentType] = useState<'image' | 'file' | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedFileName, setAttachedFileName] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const conversationId = params.id as string;
-
+  // Initialize socket connection
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setMessages(mockMessages);
-      setParticipant(mockParticipant);
-      setLoading(false);
-    }, 600);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/auth/login');
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, [conversationId]);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
+    const newSocket = io(apiUrl.replace('/api', ''), {
+      auth: {
+        token: token
+      }
+    });
 
+    setSocket(newSocket);
+
+    // Join conversation room
+    newSocket.emit('join_conversation', id);
+
+    // Listen for new messages
+    newSocket.on('receive_message', (message: Message) => {
+      setMessages(prev => [...prev, message]);
+    });
+
+    // Listen for typing indicators
+    newSocket.on('user_typing', (data) => {
+      // Update UI to show typing indicator
+      setIsTyping(true);
+    });
+
+    newSocket.on('user_stopped_typing', (data) => {
+      // Update UI to hide typing indicator
+      setIsTyping(false);
+    });
+
+    // Cleanup
+    return () => {
+      newSocket.emit('leave_conversation', id);
+      newSocket.disconnect();
+    };
+  }, [id, router]);
+
+  // Fetch conversation and messages
   useEffect(() => {
-    // Scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const fetchConversationAndMessages = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const handleSendMessage = async () => {
-    if (!messageInput.trim()) return;
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
 
-    setSending(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 300));
+        // Fetch conversation details
+        const conversationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations/${id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      senderId: 'me',
-      content: messageInput.trim(),
-      timestamp: new Date().toISOString(),
-      isRead: false,
-      type: 'text'
+        if (!conversationResponse.ok) {
+          const errorData = await conversationResponse.json();
+          throw new Error(errorData.message || 'Failed to fetch conversation');
+        }
+
+        const conversationData = await conversationResponse.json();
+        setConversation(conversationData);
+
+        // Fetch messages in conversation
+        const messagesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations/${id}/messages`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        if (!messagesResponse.ok) {
+          const errorData = await messagesResponse.json();
+          throw new Error(errorData.message || 'Failed to fetch messages');
+        }
+
+        const messagesData = await messagesResponse.json();
+        setMessages(messagesData);
+      } catch (err) {
+        console.error('Error fetching conversation and messages:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load conversation');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setMessages(prev => [...prev, newMessage]);
-    setMessageInput('');
-    setSending(false);
+    fetchConversationAndMessages();
+  }, [id, router]);
 
-    // Simulate typing indicator from other user
-    setTimeout(() => {
-      setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-        // Simulate reply
-        const reply: Message = {
-          id: (Date.now() + 1).toString(),
-          senderId: participant?.id || 'u2',
-          content: 'That sounds great! I will look into it.',
-          timestamp: new Date().toISOString(),
-          isRead: false,
-          type: 'text'
-        };
-        setMessages(prev => [...prev, reply]);
-      }, 2000);
-    }, 1000);
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const getOtherParticipant = () => {
+    if (!conversation) return null;
+    const userId = localStorage.getItem('userId');
+    return conversation.participants.find(p => p.id !== userId);
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() && !attachedFile) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/auth/login');
+        return;
+      }
+
+      // Prepare message data
+      const messageData: {
+        conversationId: string;
+        content: string;
+        messageType: string;
+        mediaUrl?: string;
+        fileName?: string;
+      } = {
+        conversationId: id,
+        content: newMessage.trim() || (attachedFile ? 'File attachment' : ''),
+        messageType: attachedFile ? (attachmentType === 'image' ? 'image' : 'file') : 'text'
+      };
+
+      // If there's an attached file, upload it first
+      if (attachedFile) {
+        // For simplicity, we'll simulate file upload
+        // In a real app, you'd upload to a service like Cloudinary
+        const formData = new FormData();
+        formData.append('file', attachedFile);
+        formData.append('upload_preset', 'mkulima_net');
+
+        // Simulate file upload and get URL
+        // In a real implementation, you would upload to a service
+        messageData.mediaUrl = URL.createObjectURL(attachedFile);
+        messageData.fileName = attachedFileName || attachedFile.name;
+      }
+
+      // Send message via API
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(messageData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send message');
+      }
+
+      const sentMessage = await response.json();
+
+      // Emit via socket for real-time update
+      if (socket) {
+        socket.emit('send_message', {
+          ...sentMessage,
+          conversationId: id,
+          senderId: localStorage.getItem('userId')
+        });
+      }
+
+      // Clear input
+      setNewMessage('');
+      setAttachedFile(null);
+      setAttachedFileName('');
+      setAttachmentType(null);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError(err instanceof Error ? err.message : 'Failed to send message');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
+  const handleFileAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAttachedFile(file);
+      setAttachedFileName(file.name);
+      
+      // Determine file type
+      if (file.type.startsWith('image/')) {
+        setAttachmentType('image');
+      } else {
+        setAttachmentType('file');
+      }
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 48) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const isCurrentUser = (senderId: string) => {
+    return senderId === localStorage.getItem('userId');
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col">
-        {/* Header Skeleton */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="flex items-center justify-between px-4 h-16">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />
-              <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse" />
-              <div>
-                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-1" />
-                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+      </div>
+    );
+  }
 
-        {/* Messages Skeleton */}
-        <div className="flex-1 p-4 space-y-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
-              <div className={`h-16 w-64 bg-gray-200 rounded-2xl animate-pulse ${
-                i % 2 === 0 ? 'rounded-br-md' : 'rounded-bl-md'
-              }`} />
-            </div>
-          ))}
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Chat</h3>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => router.back()}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+          >
+            Go Back
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!participant) {
+  if (!conversation) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">Conversation not found</h3>
-          <Link href="/messages" className="text-green-600 hover:text-green-700 mt-2 inline-block">
-            Back to messages
+          <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Conversation Not Found</h3>
+          <p className="text-gray-600 mb-6">The conversation you&apos;re looking for doesn&apos;t exist.</p>
+          <Link
+            href="/messages"
+            className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+          >
+            Back to Messages
           </Link>
         </div>
       </div>
     );
   }
 
+  const otherParticipant = getOtherParticipant();
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-4 h-16">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/messages')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
-              title="Go back"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="h-5 w-5 text-gray-600" />
-            </button>
-            
-            {/* Participant Info */}
-            <div className="relative">
-              {participant.profilePicture ? (
-                <img
-                  src={participant.profilePicture}
-                  alt={`${participant.firstName} ${participant.lastName}`}
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <span className="text-green-700 font-semibold">
-                    {participant.firstName[0]}{participant.lastName[0]}
-                  </span>
-                </div>
-              )}
-              {participant.isOnline && (
-                <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
-              )}
-            </div>
-            
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h2 className="font-semibold text-gray-900">
-                  {participant.firstName} {participant.lastName}
-                </h2>
-                {participant.verified && (
-                  <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded font-medium">
-                    Verified
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-500">
-                {participant.isOnline ? (
-                  <span className="text-green-600 flex items-center gap-1">
-                    <Circle className="h-2 w-2 fill-current" />
-                    Online
-                  </span>
-                ) : (
-                  <span>Last seen {participant.lastSeen && formatLastSeen(participant.lastSeen)}</span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-1">
-            <button
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors hidden sm:block"
-              title="Voice call"
-              aria-label="Voice call"
-            >
-              <Phone className="h-5 w-5 text-gray-600" />
-            </button>
-            <button
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors hidden sm:block"
-              title="Video call"
-              aria-label="Video call"
-            >
-              <Video className="h-5 w-5 text-gray-600" />
-            </button>
-            <Link
-              href={`/profile/${participant.id}`}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors hidden sm:block"
-              title="View profile"
-              aria-label="View profile"
-            >
-              <Store className="h-5 w-5 text-gray-600" />
-            </Link>
-            <button
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              title="More options"
-              aria-label="More options"
-            >
-              <MoreVertical className="h-5 w-5 text-gray-600" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Participant Info Card */}
-        <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
-          <div className="flex items-start gap-3">
-            {participant.profilePicture ? (
-              <img
-                src={participant.profilePicture}
-                alt={`${participant.firstName} ${participant.lastName}`}
-                className="h-14 w-14 rounded-full object-cover"
-              />
-            ) : (
-              <div className="h-14 w-14 rounded-full bg-green-100 flex items-center justify-center">
-                <span className="text-green-700 font-semibold text-lg">
-                  {participant.firstName[0]}{participant.lastName[0]}
-                </span>
-              </div>
-            )}
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">
-                {participant.firstName} {participant.lastName}
-              </h3>
-              {participant.farmName && (
-                <p className="text-sm text-gray-600">{participant.farmName}</p>
-              )}
-              {participant.location && (
-                <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                  <MapPin className="h-3 w-3" />
-                  {participant.location}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Messages */}
-        {messages.map((message, index) => {
-          const prevMessage = index > 0 ? messages[index - 1] : null;
-          const showDateSeparator = shouldShowDateSeparator(message, prevMessage);
-          const isSentByMe = message.senderId === 'me';
-
-          return (
-            <div key={message.id}>
-              {showDateSeparator && (
-                <div className="flex justify-center my-4">
-                  <span className="text-xs text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
-                    {formatDateSeparator(message.timestamp)}
-                  </span>
-                </div>
-              )}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <button
+                onClick={() => router.back()}
+                className="mr-4 flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="h-5 w-5 mr-1" />
+              </button>
               
-              <div className={`flex ${isSentByMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] sm:max-w-[60%] ${
-                  isSentByMe 
-                    ? 'bg-green-600 text-white rounded-2xl rounded-br-md' 
-                    : 'bg-white text-gray-900 rounded-2xl rounded-bl-md border border-gray-200'
-                } px-4 py-2.5 shadow-sm`}>
-                  <p className="text-sm leading-relaxed">{message.content}</p>
-                  <div className={`flex items-center justify-end gap-1 mt-1 ${
-                    isSentByMe ? 'text-green-100' : 'text-gray-400'
-                  }`}>
-                    <span className="text-xs">{formatMessageTime(message.timestamp)}</span>
-                    {isSentByMe && (
-                      <span>
-                        {message.isRead ? (
-                          <CheckCheck className="h-3 w-3" />
-                        ) : (
-                          <Check className="h-3 w-3" />
-                        )}
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                  <User className="h-5 w-5 text-green-600" />
+                </div>
+                
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    {otherParticipant ? `${otherParticipant.firstName} ${otherParticipant.lastName}` : 'Unknown'}
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    {isTyping ? 'Typing...' : 'Online'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <Link 
+                href={`/dashboard/profile/${otherParticipant?.id}`}
+                className="text-gray-600 hover:text-gray-900 font-medium text-sm"
+              >
+                View Profile
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Chat Header - Context */}
+      {(conversation.relatedProductId || conversation.relatedJobId) && (
+        <div className="bg-blue-50 border-b border-blue-100 px-4 py-2">
+          <div className="max-w-7xl mx-auto flex items-center">
+            {conversation.relatedProductId ? (
+              <div className="flex items-center text-blue-700">
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                <span>Regarding: Product Inquiry</span>
+              </div>
+            ) : conversation.relatedJobId ? (
+              <div className="flex items-center text-blue-700">
+                <Briefcase className="h-4 w-4 mr-2" />
+                <span>Regarding: Job Inquiry</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="text-center py-12">
+            <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Messages Yet</h3>
+            <p className="text-gray-600">Send your first message to start the conversation</p>
+          </div>
+        ) : (
+          messages.map(message => {
+            const isMe = isCurrentUser(message.senderId.id);
+            
+            return (
+              <div 
+                key={message.id} 
+                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+              >
+                <div 
+                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    isMe 
+                      ? 'bg-green-600 text-white rounded-br-none' 
+                      : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
+                  }`}
+                >
+                  {message.messageType === 'image' && message.mediaUrl ? (
+                    <div className="mb-2">
+                      <img 
+                        src={message.mediaUrl} 
+                        alt="Attached" 
+                        className="max-w-full h-auto rounded-md"
+                      />
+                    </div>
+                  ) : message.messageType === 'file' && message.mediaUrl ? (
+                    <div className="mb-2 flex items-center p-2 bg-gray-100 rounded">
+                      <Paperclip className="h-4 w-4 mr-2 text-gray-600" />
+                      <span className="text-sm">{message.fileName || 'File'}</span>
+                    </div>
+                  ) : null}
+                  
+                  {message.content && (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
+                  
+                  <div className={`text-xs mt-1 flex ${isMe ? 'justify-end text-green-100' : 'justify-end text-gray-500'}`}>
+                    <span>{formatDate(message.createdAt)}</span>
+                    {isMe && (
+                      <span className="ml-1">
+                        <Check className="h-3 w-3 inline" />
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-
-        {/* Typing Indicator */}
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-white rounded-2xl rounded-bl-md border border-gray-200 px-4 py-3 shadow-sm">
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </div>
+            );
+          })
         )}
-
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="bg-white border-t border-gray-200 p-4">
-        <div className="flex items-end gap-2 max-w-4xl mx-auto">
-          <button
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
-            title="Attach file"
-            aria-label="Attach file"
-          >
-            <Paperclip className="h-5 w-5 text-gray-500" />
-          </button>
-          
-          <div className="flex-1 bg-gray-100 rounded-2xl flex items-end">
-            <textarea
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
-              rows={1}
-              className="flex-1 bg-transparent px-4 py-3 resize-none outline-none text-gray-900 placeholder-gray-500 max-h-32"
-              style={{ minHeight: '48px' }}
-            />
-            <button
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors m-1"
-              title="Add emoji"
-              aria-label="Add emoji"
+      {/* Attachment Preview */}
+      {attachedFile && (
+        <div className="bg-gray-100 border-t border-gray-200 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {attachmentType === 'image' ? (
+                <Camera className="h-5 w-5 text-gray-500 mr-2" />
+              ) : (
+                <Paperclip className="h-5 w-5 text-gray-500 mr-2" />
+              )}
+              <span className="text-sm text-gray-700 truncate max-w-xs">{attachedFileName}</span>
+            </div>
+            <button 
+              onClick={() => {
+                setAttachedFile(null);
+                setAttachedFileName('');
+                setAttachmentType(null);
+              }}
+              className="text-red-500 hover:text-red-700"
             >
-              <Smile className="h-5 w-5 text-gray-500" />
+              Remove
             </button>
           </div>
-          
-          <button
-            onClick={handleSendMessage}
-            disabled={!messageInput.trim() || sending}
-            className="p-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full transition-colors flex-shrink-0"
-            title="Send message"
-            aria-label="Send message"
-          >
-            {sending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </button>
+        </div>
+      )}
+
+      {/* Message Input */}
+      <div className="bg-white border-t border-gray-200 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-end space-x-2">
+            <div className="flex-1">
+              <div className="relative rounded-lg border border-gray-300 focus-within:ring-2 focus-within:ring-green-500 focus-within:border-green-500">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Type a message..."
+                  className="w-full px-4 py-3 border-0 resize-none focus:ring-0 focus:outline-none max-h-32"
+                  rows={1}
+                />
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileAttach}
+                />
+                <Paperclip className="h-6 w-6 text-gray-500 hover:text-gray-700" />
+              </label>
+              
+              <button
+                onClick={handleSendMessage}
+                disabled={!newMessage.trim() && !attachedFile}
+                className="bg-green-600 text-white p-3 rounded-full hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

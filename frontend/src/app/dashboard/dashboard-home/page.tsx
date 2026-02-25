@@ -12,7 +12,8 @@ import {
   ShoppingBag,
   Edit3,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Briefcase
 } from 'lucide-react';
 
 interface UserData {
@@ -30,6 +31,18 @@ interface StatsData {
   totalLikes: number;
   followers: number;
   following: number;
+  // Marketplace specific stats
+  totalListings: number;
+  activeListings: number;
+  soldListings: number;
+  totalViews: number;
+  messagesReceived: number;
+  // Job specific stats
+  jobsApplied: number;
+  jobsPosted: number;
+  totalApplications: number;
+  pendingApplications: number;
+  acceptedApplications: number;
 }
 
 interface AnalyticsData {
@@ -46,24 +59,105 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Simple initialization without complex auth checks
-    const initializeDashboard = () => {
+    const initializeDashboard = async () => {
       try {
-        // Create mock user data for demonstration
-        const mockUser: UserData = {
-          firstName: "Demo",
-          lastName: "User",
-          email: "demo@example.com",
-          farmName: "Demo Farm",
-          location: "Nairobi, Kenya",
-          isProfileComplete: false
+        // Get authentication token
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
+
+        // Fetch user profile
+        const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/profile`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        if (!userResponse.ok) {
+          throw new Error('Failed to fetch user profile');
+        }
+
+        const userData = await userResponse.json();
+        const userProfile: UserData = {
+          firstName: userData.firstName || userData.username?.split(' ')[0] || 'Demo',
+          lastName: userData.lastName || '',
+          email: userData.email,
+          farmName: userData.farmName || userData.username,
+          location: userData.location || 'Kenya',
+          isProfileComplete: !!userData.firstName && !!userData.email
         };
 
-        const mockStats: StatsData = {
+        // Fetch marketplace stats
+        const marketplaceStatsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/dashboard/stats`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        let marketplaceStats = {
+          totalListings: 0,
+          activeListings: 0,
+          soldListings: 0,
+          totalViews: 0,
+          messagesReceived: 0
+        };
+
+        if (marketplaceStatsResponse.ok) {
+          marketplaceStats = await marketplaceStatsResponse.json();
+        }
+
+        // Fetch job stats
+        const jobStatsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/dashboard/stats`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        let jobStats = {
+          jobsApplied: 0,
+          jobsPosted: 0,
+          totalApplications: 0,
+          pendingApplications: 0,
+          acceptedApplications: 0
+        };
+
+        if (jobStatsResponse.ok) {
+          jobStats = await jobStatsResponse.json();
+        }
+
+        // Fetch general stats
+        const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/stats`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        let generalStats = {
           totalPosts: 0,
           totalLikes: 0,
           followers: 0,
           following: 0
+        };
+
+        if (statsResponse.ok) {
+          generalStats = await statsResponse.json();
+        }
+
+        // Combine stats
+        const combinedStats: StatsData = {
+          ...generalStats,
+          ...marketplaceStats,
+          ...jobStats
         };
 
         const mockAnalytics: AnalyticsData = {
@@ -71,12 +165,12 @@ export default function DashboardPage() {
           likesOverTime: []
         };
 
-        setUser(mockUser);
-        setStats(mockStats);
+        setUser(userProfile);
+        setStats(combinedStats);
         setAnalytics(mockAnalytics);
         setLoading(false);
         
-        console.log('Dashboard loaded successfully with demo data');
+        console.log('Dashboard loaded successfully with real data');
         
       } catch (err) {
         console.error('Dashboard initialization error:', err);
@@ -85,10 +179,8 @@ export default function DashboardPage() {
       }
     };
 
-    // Small delay to simulate loading
-    const timer = setTimeout(initializeDashboard, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    initializeDashboard();
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -184,7 +276,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Statistics Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center">
               <div className="bg-green-100 p-3 rounded-lg">
@@ -202,12 +294,40 @@ export default function DashboardPage() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center">
               <div className="bg-green-100 p-3 rounded-lg">
-                <Heart className="h-6 w-6 text-green-600" />
+                <ShoppingBag className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Likes</p>
+                <p className="text-sm font-medium text-gray-600">Total Listings</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {stats?.totalLikes || 0}
+                  {stats?.totalListings || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-lg">
+                <Briefcase className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Jobs Applied</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats?.jobsApplied || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-lg">
+                <Briefcase className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Jobs Posted</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats?.jobsPosted || 0}
                 </p>
               </div>
             </div>
@@ -219,23 +339,9 @@ export default function DashboardPage() {
                 <Users className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Followers</p>
+                <p className="text-sm font-medium text-gray-600">Applications</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {stats?.followers || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center">
-              <div className="bg-green-100 p-3 rounded-lg">
-                <User className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Following</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats?.following || 0}
+                  {stats?.totalApplications || 0}
                 </p>
               </div>
             </div>
@@ -252,7 +358,7 @@ export default function DashboardPage() {
           <div className="text-center py-12">
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No engagement data yet</h3>
-            <p className="text-gray-600">Start posting to see insights about your activity.</p>
+            <p className="text-gray-600">Start posting and listing products to see insights about your activity.</p>
           </div>
         </div>
 
@@ -282,7 +388,7 @@ export default function DashboardPage() {
               <h3 className="font-bold text-gray-900 mb-2">Add Product</h3>
               <p className="text-gray-600 text-sm mb-4">List your products in the marketplace</p>
               <Link
-                href="/dashboard/marketplace/create"
+                href="/marketplace/sell"
                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
               >
                 Add Product
@@ -293,17 +399,17 @@ export default function DashboardPage() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="text-center">
               <div className="bg-green-100 p-3 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
-                <User className="h-6 w-6 text-green-600" />
+                <Briefcase className="h-6 w-6 text-green-600" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">Complete Profile</h3>
+              <h3 className="font-bold text-gray-900 mb-2">Post a Job</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Finish setting up your farmer profile
+                Looking for employees? Post a job opportunity
               </p>
               <Link
-                href="/dashboard/profile/edit"
+                href="/jobs/post"
                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
               >
-                Complete Profile
+                Post Job
               </Link>
             </div>
           </div>

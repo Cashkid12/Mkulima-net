@@ -105,6 +105,48 @@ notificationSchema.index({ createdAt: -1 });
 
 // Static method to create notification
 notificationSchema.statics.createNotification = async function(data) {
+  // Check if user wants this type of notification
+  const User = require('./User');
+  const recipientUser = await User.findById(data.recipient);
+  
+  if (recipientUser && recipientUser.notificationSettings) {
+    let shouldNotify = true;
+    
+    // Check specific notification type settings
+    switch(data.type) {
+      case 'like':
+      case 'reaction':
+        shouldNotify = recipientUser.notificationSettings.reactions;
+        break;
+      case 'comment':
+        shouldNotify = recipientUser.notificationSettings.comments;
+        break;
+      case 'follower':
+        shouldNotify = recipientUser.notificationSettings.followers;
+        break;
+      case 'message':
+        shouldNotify = recipientUser.notificationSettings.messages;
+        break;
+      case 'product_sale':
+      case 'product_like':
+      case 'product_comment':
+        shouldNotify = recipientUser.notificationSettings.marketplace;
+        break;
+      case 'job':
+      case 'job_application':
+        shouldNotify = recipientUser.notificationSettings.jobs;
+        break;
+      default:
+        shouldNotify = true;
+        break;
+    }
+    
+    // If user doesn't want this notification type, return early
+    if (!shouldNotify) {
+      return null;
+    }
+  }
+  
   const notification = new this(data);
   await notification.save();
   return notification.populate('sourceUser', 'username profilePicture farmName');
@@ -128,4 +170,6 @@ notificationSchema.statics.markAllAsRead = async function(userId) {
 };
 
 module.exports = mongoose.model('Notification', notificationSchema);
+
+
 

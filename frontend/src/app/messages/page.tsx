@@ -6,420 +6,366 @@ import Link from 'next/link';
 import { 
   Search,
   Plus,
-  MoreVertical,
-  Phone,
-  Video,
-  Users,
-  MessageCircle,
+  ShoppingCart,
+  Briefcase,
+  User,
   Clock,
   Check,
-  CheckCheck,
-  Circle,
+  AlertCircle,
   Loader2,
-  ArrowLeft
+  MessageSquare,
+  Users,
+  Send
 } from 'lucide-react';
+import io from 'socket.io-client';
 
-// Types
-interface Conversation {
+interface User {
   id: string;
-  participant: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    farmName?: string;
-    profilePicture?: string;
-    location?: string;
-    isOnline: boolean;
-    lastSeen?: string;
-  };
-  lastMessage: {
-    content: string;
-    timestamp: string;
-    isRead: boolean;
-    sentByMe: boolean;
-  };
-  unreadCount: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  profilePicture?: string;
+  location?: string;
+  verified: boolean;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  images: string[];
+}
+
+interface Job {
+  id: string;
+  title: string;
+  companyName: string;
+}
+
+interface LastMessage {
+  _id: string;
+  content: string;
+  messageType: string;
+  senderId: User;
+  createdAt: string;
+}
+
+interface Conversation {
+  _id: string;
+  participants: User[];
+  relatedProductId?: string;
+  relatedJobId?: string;
+  lastMessage?: LastMessage;
   updatedAt: string;
-}
-
-// Mock data for conversations
-const mockConversations: Conversation[] = [
-  {
-    id: '1',
-    participant: {
-      id: 'u2',
-      firstName: 'Mary',
-      lastName: 'Wanjiru',
-      farmName: 'Green Valley Dairy',
-      location: 'Nakuru County',
-      isOnline: true,
-      profilePicture: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'
-    },
-    lastMessage: {
-      content: 'Thank you for the information about the dairy feeds. I will check with my supplier.',
-      timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-      isRead: false,
-      sentByMe: false
-    },
-    unreadCount: 2,
-    updatedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString()
-  },
-  {
-    id: '2',
-    participant: {
-      id: 'u3',
-      firstName: 'John',
-      lastName: 'Kariuki',
-      farmName: 'Kariuki Farms',
-      location: 'Kiambu County',
-      isOnline: false,
-      lastSeen: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-      profilePicture: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'
-    },
-    lastMessage: {
-      content: 'The maize harvest will be ready next week. Are you still interested?',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      isRead: true,
-      sentByMe: true
-    },
-    unreadCount: 0,
-    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: '3',
-    participant: {
-      id: 'u4',
-      firstName: 'Grace',
-      lastName: 'Muthoni',
-      farmName: 'Muthoni Agrovet',
-      location: 'Nairobi County',
-      isOnline: true,
-      profilePicture: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100'
-    },
-    lastMessage: {
-      content: 'We have a new stock of fertilizers arriving tomorrow.',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      isRead: true,
-      sentByMe: false
-    },
-    unreadCount: 0,
-    updatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: '4',
-    participant: {
-      id: 'u5',
-      firstName: 'Peter',
-      lastName: 'Omondi',
-      farmName: 'Lakeview Farms',
-      location: 'Kisumu County',
-      isOnline: false,
-      lastSeen: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    },
-    lastMessage: {
-      content: 'Can you deliver the equipment to my farm?',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      isRead: true,
-      sentByMe: false
-    },
-    unreadCount: 0,
-    updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: '5',
-    participant: {
-      id: 'u6',
-      firstName: 'Sarah',
-      lastName: 'Akinyi',
-      farmName: 'Akinyi Poultry',
-      location: 'Machakos County',
-      isOnline: true,
-      profilePicture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-    },
-    lastMessage: {
-      content: 'I have 200 layers ready for sale. Let me know if you are interested.',
-      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      isRead: true,
-      sentByMe: true
-    },
-    unreadCount: 0,
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-  }
-];
-
-// Helper functions
-function formatTimeAgo(timestamp: string): string {
-  const now = new Date();
-  const date = new Date(timestamp);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHours < 24) return `${diffHours}h`;
-  if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function formatLastSeen(timestamp: string): string {
-  const now = new Date();
-  const date = new Date(timestamp);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minutes ago`;
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  if (diffDays === 1) return 'Yesterday';
-  return `${diffDays} days ago`;
+  unreadCount: number;
 }
 
 export default function MessagesPage() {
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [socket, setSocket] = useState<any>(null);
 
+  // Initialize socket connection
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setConversations(mockConversations);
-      setLoading(false);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const filteredConversations = conversations.filter(conv => {
-    const matchesSearch = 
-      conv.participant.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.participant.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.participant.farmName?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (activeTab === 'unread') {
-      return matchesSearch && conv.unreadCount > 0;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/auth/login');
+      return;
     }
-    return matchesSearch;
+
+    const newSocket = io(`${process.env.NEXT_PUBLIC_API_URL.replace('/api', '')}`, {
+      auth: {
+        token: token
+      }
+    });
+
+    setSocket(newSocket);
+
+    // Listen for new messages
+    newSocket.on('receive_message', (message: any) => {
+      // Update the conversation list with the new message
+      setConversations(prev => {
+        const updated = prev.map(conv => {
+          if (conv._id === message.conversationId) {
+            return {
+              ...conv,
+              lastMessage: message,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return conv;
+        });
+        return updated.sort((a, b) => 
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+      });
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [router]);
+
+  // Fetch conversations
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to fetch conversations');
+        }
+
+        const data = await response.json();
+        setConversations(data);
+      } catch (err) {
+        console.error('Error fetching conversations:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load conversations');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConversations();
+  }, [router]);
+
+  // Filter conversations based on search term
+  const filteredConversations = conversations.filter(conv => {
+    const otherParticipant = conv.participants.find(p => 
+      p.id !== localStorage.getItem('userId')
+    );
+    
+    if (!otherParticipant) return false;
+    
+    return (
+      otherParticipant.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      otherParticipant.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      otherParticipant.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (conv.lastMessage?.content.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+    );
   });
 
-  const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+  const getLastMessagePreview = (lastMessage?: LastMessage) => {
+    if (!lastMessage) return 'No messages yet';
+    
+    let content = lastMessage.content;
+    if (lastMessage.messageType === 'image') {
+      content = '📷 Photo';
+    } else if (lastMessage.messageType === 'file') {
+      content = '📁 File';
+    } else if (lastMessage.messageType === 'voice') {
+      content = '🎤 Voice message';
+    }
+    
+    return content;
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header Skeleton */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-4">
-                <div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />
-                <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
-              </div>
-              <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse" />
-            </div>
-          </div>
-        </div>
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 48) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
 
-        {/* Search Skeleton */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="h-10 bg-gray-200 rounded-lg animate-pulse" />
-          </div>
-        </div>
-
-        {/* Conversations Skeleton */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center gap-4 p-4 bg-white rounded-lg mb-2">
-              <div className="h-12 w-12 bg-gray-200 rounded-full animate-pulse" />
-              <div className="flex-1">
-                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2" />
-                <div className="h-3 w-48 bg-gray-200 rounded animate-pulse" />
-              </div>
-              <div className="h-3 w-12 bg-gray-200 rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const getOtherParticipant = (conversation: Conversation) => {
+    const userId = localStorage.getItem('userId');
+    return conversation.participants.find(p => p.id !== userId);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Go back"
-                aria-label="Go back"
-              >
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
-              </button>
-              <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
-              {totalUnread > 0 && (
-                <span className="bg-green-600 text-white text-xs font-medium px-2 py-0.5 rounded-full">
-                  {totalUnread}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href="/communities"
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Communities</span>
+            <div className="flex items-center">
+              <Link href="/" className="text-xl font-bold text-green-800">
+                MkulimaNet
               </Link>
-              <button
-                className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                title="New message"
-                aria-label="New message"
+              <span className="mx-2 text-gray-300">|</span>
+              <span className="text-gray-600">Messages</span>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <Link 
+                href="/dashboard"
+                className="text-gray-600 hover:text-gray-900 font-medium"
               >
-                <Plus className="h-5 w-5" />
-              </button>
+                Dashboard
+              </Link>
+            </div>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="py-4">
+            <div className="relative max-w-2xl mx-auto">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+              />
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Search and Tabs */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            />
-          </div>
-
-          {/* Tabs */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeTab === 'all'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              All Messages
-            </button>
-            <button
-              onClick={() => setActiveTab('unread')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeTab === 'unread'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Unread {totalUnread > 0 && `(${totalUnread})`}
-            </button>
-          </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* New Message Button */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+          <Link 
+            href="/messages/new"
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            <span>New Message</span>
+          </Link>
         </div>
-      </div>
 
-      {/* Conversations List */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {filteredConversations.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">
-              {searchQuery ? 'No conversations found' : 'No messages yet'}
-            </h3>
-            <p className="text-gray-500">
-              {searchQuery 
-                ? 'Try adjusting your search'
-                : 'Start a conversation with farmers, buyers, or sellers'
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {filteredConversations.map((conversation) => (
-              <Link
-                key={conversation.id}
-                href={`/messages/${conversation.id}`}
-                className="flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-sm transition-all"
-              >
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
-                  {conversation.participant.profilePicture ? (
-                    <img
-                      src={conversation.participant.profilePicture}
-                      alt={`${conversation.participant.firstName} ${conversation.participant.lastName}`}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                      <span className="text-green-700 font-semibold text-lg">
-                        {conversation.participant.firstName[0]}{conversation.participant.lastName[0]}
-                      </span>
-                    </div>
-                  )}
-                  {/* Online Indicator */}
-                  {conversation.participant.isOnline ? (
-                    <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
-                  ) : (
-                    <span className="absolute bottom-0 right-0 h-3 w-3 bg-gray-400 border-2 border-white rounded-full" />
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <h3 className="text-sm font-semibold text-gray-900 truncate">
-                      {conversation.participant.firstName} {conversation.participant.lastName}
-                    </h3>
-                    <span className="text-xs text-gray-500 flex-shrink-0">
-                      {formatTimeAgo(conversation.lastMessage.timestamp)}
-                    </span>
+        {/* Conversations List */}
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-pulse">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
                   </div>
-                  <p className="text-xs text-gray-500 mb-1">
-                    {conversation.participant.farmName || conversation.participant.location}
-                  </p>
-                  <div className="flex items-center gap-1">
-                    {conversation.lastMessage.sentByMe && (
-                      <span className="text-gray-400">
-                        {conversation.lastMessage.isRead ? (
-                          <CheckCheck className="h-3 w-3" />
-                        ) : (
-                          <Check className="h-3 w-3" />
-                        )}
-                      </span>
-                    )}
-                    <p className={`text-sm truncate ${
-                      conversation.unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'
-                    }`}>
-                      {conversation.lastMessage.content}
-                    </p>
+                  <div className="text-right">
+                    <div className="h-3 bg-gray-200 rounded w-8 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-12"></div>
                   </div>
                 </div>
-
-                {/* Unread Badge */}
-                {conversation.unreadCount > 0 && (
-                  <span className="flex-shrink-0 bg-green-600 text-white text-xs font-medium h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center">
-                    {conversation.unreadCount}
-                  </span>
-                )}
-              </Link>
+              </div>
             ))}
           </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Messages</h3>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="text-center py-16">
+            <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Conversations</h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm ? 'No conversations match your search' : 'You don\'t have any conversations yet'}
+            </p>
+            <Link
+              href="/messages/new"
+              className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+            >
+              Start New Conversation
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredConversations.map(conversation => {
+              const otherParticipant = getOtherParticipant(conversation);
+              if (!otherParticipant) return null;
+
+              return (
+                <Link 
+                  key={conversation._id} 
+                  href={`/messages/${conversation._id}`}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200 block"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <User className="h-6 w-6 text-green-600" />
+                      </div>
+                      {/* Online indicator would go here in a real implementation */}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {otherParticipant.firstName} {otherParticipant.lastName}
+                        </h3>
+                        {conversation.lastMessage && (
+                          <span className="text-sm text-gray-500">
+                            {formatDate(conversation.lastMessage.createdAt)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center mt-1">
+                        <p className="text-sm text-gray-600 truncate">
+                          {getLastMessagePreview(conversation.lastMessage)}
+                        </p>
+                        
+                        {/* Related item indicator */}
+                        {conversation.relatedProductId && (
+                          <div className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full flex items-center">
+                            <ShoppingCart className="h-3 w-3 mr-1" />
+                            Product
+                          </div>
+                        )}
+                        {conversation.relatedJobId && (
+                          <div className="ml-2 bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full flex items-center">
+                            <Briefcase className="h-3 w-3 mr-1" />
+                            Job
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Unread count */}
+                    {conversation.unreadCount > 0 && (
+                      <div className="flex flex-col items-end">
+                        <span className="bg-green-600 text-white text-xs font-medium rounded-full h-6 w-6 flex items-center justify-center">
+                          {conversation.unreadCount}
+                        </span>
+                        <div className="mt-2 flex items-center">
+                          <Check className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

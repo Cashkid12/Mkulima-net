@@ -1,21 +1,11 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 const http = require('http');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
+require('dotenv').config();
 
-// Load environment variables
-dotenv.config();
-
-// Import config
 const connectDB = require('./config/database');
-
-// Import middleware
-const errorHandler = require('./middleware/errorHandler');
-const { generalLimiter } = require('./middleware/rateLimit');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -29,83 +19,22 @@ const profileRoutes = require('./routes/profile');
 const communityRoutes = require('./routes/communities');
 const settingsRoutes = require('./routes/settings');
 const weatherRoutes = require('./routes/weather');
+const feedRoutes = require('./routes/feed');
+const followRoutes = require('./routes/follow');
+const messageRoutes = require('./routes/messages');
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
-});
 
-// Connect to database
+// Connect to MongoDB
 connectDB();
 
-// Security middleware
-app.use(helmet());
+// Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }));
-
-// Rate limiting
-app.use(generalLimiter);
-
-// Logging middleware
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
-
-// Body parsing middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  // Join user-specific room for notifications
-  socket.on('join-user-room', (userId) => {
-    socket.join(`user_${userId}`);
-    console.log(`User ${socket.id} joined user room: user_${userId}`);
-  });
-
-  socket.on('leave-user-room', (userId) => {
-    socket.leave(`user_${userId}`);
-    console.log(`User ${socket.id} left user room: user_${userId}`);
-  });
-
-  socket.on('join-room', (room) => {
-    socket.join(room);
-    console.log(`User ${socket.id} joined room ${room}`);
-  });
-
-  socket.on('leave-room', (room) => {
-    socket.leave(room);
-    console.log(`User ${socket.id} left room ${room}`);
-  });
-
-  socket.on('send-message', (data) => {
-    io.to(data.conversationId).emit('receive-message', data);
-  });
-
-  socket.on('user-typing', (data) => {
-    socket.to(data.conversationId).emit('user-typing', data);
-  });
-
-  socket.on('user-online', (userId) => {
-    socket.broadcast.emit('user-status-change', { userId, status: 'online' });
-  });
-
-  socket.on('user-offline', (userId) => {
-    socket.broadcast.emit('user-status-change', { userId, status: 'offline' });
-  });
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -114,42 +43,189 @@ app.use('/api/posts', postRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/communities', communityRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/weather', weatherRoutes);
+app.use('/api/feed', feedRoutes);
+app.use('/api/follow', followRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  // Join a room (conversation)
+  socket.on('join_conversation', (conversationId) => {
+    socket.join(conversationId);
+    console.log(`User ${socket.id} joined conversation ${conversationId}`);
+  });
+
+  // Leave a room (conversation)
+  socket.on('leave_conversation', (conversationId) => {
+    socket.leave(conversationId);
+    console.log(`User ${socket.id} left conversation ${conversationId}`);
+  });
+
+  // Listen for new messages
+  socket.on('send_message', async (data) => {
+    try {
+      // Emit the message to all users in the conversation room
+      io.to(data.conversationId).emit('receive_message', data);
+      
+      // Update unread counts for other participants
+      const { Conversation } = require('./models/Conversation');
+      const conversation = await Conversation.findById(data.conversationId);
+      
+      if (conversation) {
+        const otherParticipants = conversation.participants.filter(
+          participant => participant.toString() !== data.senderId
+        );
+        
+        // Increment unread counts for other participants
+        const updateUnreadCounts = {};
+        otherParticipants.forEach(participant => {
+          const currentCount = conversation.unreadCounts[participant] || 0;
+          updateUnreadCounts[`unreadCounts.${participant}`] = currentCount + 1;
+        });
+        
+        await Conversation.findByIdAndUpdate(data.conversationId, {
+          lastMessage: data._id,
+          ...updateUnreadCounts
+        });
+      }
+    } catch (err) {
+      console.error('Error sending message via socket:', err);
+    }
+  });
+
+  // Typing indicators
+  socket.on('typing_start', (data) => {
+    socket.to(data.conversationId).emit('user_typing', {
+      userId: data.userId,
+      conversationId: data.conversationId
+    });
+  });
+
+  socket.on('typing_stop', (data) => {
+    socket.to(data.conversationId).emit('user_stopped_typing', {
+      userId: data.userId,
+      conversationId: data.conversationId
+    });
+  });
+
+  // Mark messages as read
+  socket.on('mark_as_read', async (data) => {
+    try {
+      const { Message, Conversation } = require('./models');
+      
+      // Update read status in the message
+      await Message.updateMany(
+        { conversationId: data.conversationId, 'readStatus.read': { $ne: true } },
+        { $set: { [`readStatus.${data.userId}`]: true } }
+      );
+      
+      // Reset unread count for the user
+      await Conversation.findByIdAndUpdate(data.conversationId, {
+        $set: { [`unreadCounts.${data.userId}`]: 0 }
+      });
+      
+      // Notify other participants that messages were read
+      io.to(data.conversationId).emit('messages_read', {
+        userId: data.userId,
+        conversationId: data.conversationId
+      });
+    } catch (err) {
+      console.error('Error marking messages as read:', err);
+    }
+  });
+
+  // Handle disconnect
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+
+  // Post-related socket events
+  
+  // Join a post room for real-time updates
+  socket.on('join_post', (postId) => {
+    socket.join(`post_${postId}`);
+    console.log(`User ${socket.id} joined post room ${postId}`);
+  });
+
+  // Leave a post room
+  socket.on('leave_post', (postId) => {
+    socket.leave(`post_${postId}`);
+    console.log(`User ${socket.id} left post room ${postId}`);
+  });
+
+  // Join user room for notifications
+  socket.on('join_user', (userId) => {
+    socket.join(`user_${userId}`);
+    console.log(`User ${socket.id} joined user room ${userId}`);
+  });
+
+  // New post created - broadcast to followers
+  socket.on('new_post', async (data) => {
+    try {
+      const { postId, authorId } = data;
+      
+      // Get author's followers
+      const User = require('./models/User');
+      const author = await User.findById(authorId).select('followers');
+      
+      if (author && author.followers) {
+        // Emit to all followers
+        author.followers.forEach(followerId => {
+          io.to(`user_${followerId}`).emit('new_post_feed', {
+            postId,
+            authorId,
+            timestamp: new Date().toISOString()
+          });
+        });
+      }
+      
+      // Also emit to the author
+      io.to(`user_${authorId}`).emit('new_post_feed', {
+        postId,
+        authorId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Error broadcasting new post:', err);
+    }
+  });
+
+  // Post updated
+  socket.on('update_post', (data) => {
+    const { postId } = data;
+    io.to(`post_${postId}`).emit('post_updated', data);
+  });
+
+  // Post deleted
+  socket.on('delete_post', (data) => {
+    const { postId } = data;
+    io.to(`post_${postId}`).emit('post_deleted', { postId });
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
-});
-
-// Error handling middleware
-app.use(errorHandler);
-
-// Make io accessible to routes
-app.set('io', io);
-
-// Export io for use in other modules
-module.exports = { app, io, server };
-
-// Start server
 const PORT = process.env.PORT || 5000;
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
+module.exports = app;

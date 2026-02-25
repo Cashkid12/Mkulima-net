@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
+const User = require('../models/User');
 const authenticateToken = require('../middleware/auth');
 
 // @route   GET /api/notifications
@@ -163,6 +164,11 @@ router.post('/', authenticateToken, async (req, res) => {
       actionLink
     });
 
+    // If notification was filtered out based on user preferences, return early
+    if (!notification) {
+      return res.json({ message: 'Notification filtered based on user preferences' });
+    }
+
     // Emit real-time notification via Socket.IO
     const io = req.app.get('io');
     if (io) {
@@ -177,4 +183,8 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
 

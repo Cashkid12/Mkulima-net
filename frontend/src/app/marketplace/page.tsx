@@ -98,168 +98,6 @@ const kenyanCounties = [
   'Uasin Gishu', 'Kericho', 'Bomet', 'Nandi', 'Kakamega', 'Vihiga'
 ];
 
-// Mock data for development
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Fresh Organic Maize',
-    description: 'High-quality organic maize, freshly harvested from our farm. Perfect for both human consumption and animal feed.',
-    category: 'produce',
-    subcategory: 'grains',
-    price: 3500,
-    currency: 'KES',
-    quantity: 50,
-    unit: 'bags',
-    condition: 'fresh',
-    images: ['https://images.unsplash.com/photo-1595280151135-7ae8f7d55681?w=600'],
-    location: { county: 'Nakuru', town: 'Njoro' },
-    seller: { id: 's1', name: 'Green Valley Farm', type: 'farmer', verified: true, rating: 4.8 },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    views: 45
-  },
-  {
-    id: '2',
-    name: 'Dairy Cows - Friesian',
-    description: 'Healthy Friesian dairy cows, high milk producers. Vaccinated and dewormed.',
-    category: 'livestock',
-    subcategory: 'cattle',
-    price: 85000,
-    currency: 'KES',
-    quantity: 5,
-    unit: 'animals',
-    condition: 'live',
-    breed: 'Friesian',
-    age: '3 years',
-    healthStatus: 'Excellent - Fully vaccinated',
-    images: ['https://images.unsplash.com/photo-1596733430284-f7437764b1a9?w=600'],
-    location: { county: 'Kiambu', town: 'Thika' },
-    seller: { id: 's2', name: 'Wanjiru Dairy Farm', type: 'farmer', verified: true, rating: 4.9 },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    views: 128
-  },
-  {
-    id: '3',
-    name: 'NPK Fertilizer 23:23:0',
-    description: 'High-quality NPK fertilizer for optimal crop growth. 50kg bags available.',
-    category: 'agrovet',
-    subcategory: 'fertilizer',
-    price: 2800,
-    currency: 'KES',
-    quantity: 100,
-    unit: 'bags',
-    condition: 'new',
-    images: ['https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600'],
-    location: { county: 'Nairobi', town: 'Industrial Area' },
-    seller: { id: 's3', name: 'AgroSupplies Ltd', type: 'agrovet', verified: true, rating: 4.5 },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    views: 89
-  },
-  {
-    id: '4',
-    name: 'Massey Ferguson Tractor 135',
-    description: 'Well-maintained Massey Ferguson 135 tractor. Recently serviced and ready for work.',
-    category: 'equipment',
-    subcategory: 'tractor',
-    price: 450000,
-    currency: 'KES',
-    quantity: 1,
-    unit: 'piece',
-    condition: 'used',
-    images: ['https://images.unsplash.com/photo-1592982537447-7440770cbfc9?w=600'],
-    location: { county: 'Uasin Gishu', town: 'Eldoret' },
-    seller: { id: 's4', name: 'FarmEquip Solutions', type: 'equipment_seller', verified: false, rating: 4.2 },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    views: 234
-  },
-  {
-    id: '5',
-    name: 'Hass Avocado Seedlings',
-    description: 'Grafted Hass avocado seedlings, 6 months old. Ready for transplanting. High-yielding variety.',
-    category: 'seedlings',
-    subcategory: 'avocado',
-    price: 150,
-    currency: 'KES',
-    quantity: 500,
-    unit: 'seedlings',
-    condition: 'fresh',
-    images: ['https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=600'],
-    location: { county: 'Murang\'a', town: 'Maragua' },
-    seller: { id: 's5', name: 'Hass Nursery', type: 'farmer', verified: true, rating: 4.7 },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-    views: 67
-  },
-  {
-    id: '6',
-    name: 'Fresh Tomatoes - Grade A',
-    description: 'Premium grade A tomatoes, organically grown. Perfect for market resale or processing.',
-    category: 'produce',
-    subcategory: 'vegetables',
-    price: 80,
-    currency: 'KES',
-    quantity: 200,
-    unit: 'kg',
-    condition: 'fresh',
-    images: ['https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600'],
-    location: { county: 'Kajiado', town: 'Kiserian' },
-    seller: { id: 's6', name: 'Kajiado Fresh Produce', type: 'farmer', verified: false, rating: 4.3 },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    views: 156
-  },
-  {
-    id: '7',
-    name: 'Goats - Indigenous Breed',
-    description: 'Healthy indigenous goats, perfect for meat production. Various ages available.',
-    category: 'livestock',
-    subcategory: 'goats',
-    price: 6500,
-    currency: 'KES',
-    quantity: 15,
-    unit: 'animals',
-    condition: 'live',
-    breed: 'Indigenous',
-    age: '1-2 years',
-    healthStatus: 'Good health',
-    images: ['https://images.unsplash.com/photo-1560814304-4f05b62af116?w=600'],
-    location: { county: 'Kajiado', town: 'Isinya' },
-    seller: { id: 's7', name: 'Maasai Livestock', type: 'farmer', verified: true, rating: 4.6 },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
-    views: 92
-  },
-  {
-    id: '8',
-    name: 'Poultry Feed - Layers Mash',
-    description: 'High-quality layers mash for optimal egg production. 70kg bags.',
-    category: 'agrovet',
-    subcategory: 'feed',
-    price: 3200,
-    currency: 'KES',
-    quantity: 50,
-    unit: 'bags',
-    condition: 'new',
-    images: ['https://images.unsplash.com/photo-1589469884538-4c2b46d7e4cc?w=600'],
-    location: { county: 'Nakuru', town: 'Nakuru Town' },
-    seller: { id: 's8', name: 'Poultry Masters', type: 'supplier', verified: true, rating: 4.4 },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    views: 78
-  }
-];
-
 // Helper functions
 const getTimeAgo = (dateString: string): string => {
   const date = new Date(dateString);
@@ -297,7 +135,6 @@ const getCategoryIcon = (categoryId: string) => {
 
 // Product Card Component
 const ProductCard = ({ product, onClick }: { product: Product; onClick: () => void }) => {
-  const Icon = getCategoryIcon(product.category);
   const freshnessClass = getFreshnessColor(product.createdAt);
   
   return (
@@ -319,7 +156,10 @@ const ProductCard = ({ product, onClick }: { product: Product; onClick: () => vo
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Icon className="h-16 w-16 text-gray-300" />
+            {(() => {
+              const Icon = getCategoryIcon(product.category);
+              return <Icon className="h-16 w-16 text-gray-300" />;
+            })()}
           </div>
         )}
         
@@ -439,61 +279,110 @@ export default function MarketplacePage() {
       setLoading(true);
       setError(null);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Determine which endpoint to use based on filters
+      let url;
+      const queryParams = new URLSearchParams();
       
-      // Use mock data
-      setProducts(mockProducts);
-      setFilteredProducts(mockProducts);
+      // Check if we need to use the search endpoint (for complex filters)
+      const hasAdvancedFilters = filters.sellerType !== 'all' || filters.freshness !== 'all';
+      
+      if (hasAdvancedFilters || filters.search) {
+        // Use search endpoint for advanced filtering
+        url = `${process.env.NEXT_PUBLIC_API_URL}/products/search`;
+        
+        // Add all filters to search endpoint
+        if (filters.category && filters.category !== 'all') {
+          queryParams.append('category', filters.category);
+        }
+        if (filters.location) {
+          queryParams.append('county', filters.location);
+        }
+        if (filters.minPrice) {
+          queryParams.append('minPrice', filters.minPrice);
+        }
+        if (filters.maxPrice) {
+          queryParams.append('maxPrice', filters.maxPrice);
+        }
+        if (filters.search) {
+          queryParams.append('q', filters.search);
+        }
+        if (filters.sellerType && filters.sellerType !== 'all') {
+          queryParams.append('sellerType', filters.sellerType);
+        }
+        if (filters.freshness && filters.freshness !== 'all') {
+          queryParams.append('freshness', filters.freshness);
+        }
+      } else {
+        // Use regular products endpoint for basic filtering
+        url = `${process.env.NEXT_PUBLIC_API_URL}/products`;
+        
+        // Add basic filters to regular endpoint
+        if (filters.category && filters.category !== 'all') {
+          queryParams.append('category', filters.category);
+        }
+        if (filters.location) {
+          queryParams.append('county', filters.location);
+        }
+        if (filters.minPrice) {
+          queryParams.append('minPrice', filters.minPrice);
+        }
+        if (filters.maxPrice) {
+          queryParams.append('maxPrice', filters.maxPrice);
+        }
+        if (filters.search) {
+          queryParams.append('q', filters.search);
+        }
+      }
+      
+      // Add pagination (we'll use a reasonable limit)
+      queryParams.append('limit', '50');
+      
+      if (queryParams.toString()) {
+        url += '?' + queryParams.toString();
+      }
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch products');
+      }
+      
+      const data = await response.json();
+      setProducts(data.products || []);
+      setFilteredProducts(data.products || []);
     } catch (err) {
-      setError('Failed to load products. Please try again.');
+      console.error('Error fetching products:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load products. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
   // Apply filters
+  // Note: With the API now handling filtering, we'll keep this for any client-side filters
+  // that aren't sent to the server, or for when we want to implement instant filtering
+  // without API calls. For now, we'll rely on the API response.
   useEffect(() => {
+    // Since we're fetching filtered data from the API, we'll just use the products as-is
+    // but we can still apply any client-side filters that aren't handled by the API
     let result = [...products];
     
-    // Search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(searchLower) ||
-        p.description.toLowerCase().includes(searchLower) ||
-        p.location.county.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    // Category filter
-    if (filters.category !== 'all') {
-      result = result.filter(p => p.category === filters.category);
-    }
-    
-    // Location filter
-    if (filters.location) {
-      result = result.filter(p => p.location.county === filters.location);
-    }
-    
-    // Price filter
-    if (filters.minPrice) {
-      result = result.filter(p => p.price >= parseInt(filters.minPrice));
-    }
-    if (filters.maxPrice) {
-      result = result.filter(p => p.price <= parseInt(filters.maxPrice));
-    }
-    
-    // Seller type filter
+    // Seller type filter (not handled by API yet)
     if (filters.sellerType !== 'all') {
       result = result.filter(p => p.seller.type === filters.sellerType);
     }
     
-    // Freshness filter
+    // Freshness filter (not handled by API yet)
     if (filters.freshness !== 'all') {
       const now = new Date();
       result = result.filter(p => {

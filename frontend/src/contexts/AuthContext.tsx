@@ -41,31 +41,38 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('token');
+    }
+    return null;
+  });
   const [user, setUser] = useState<User | null>(() => {
     if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('mkulima_user');
+      const storedUser = localStorage.getItem('user');
       return storedUser ? JSON.parse(storedUser) : null;
     }
     return null;
   });
-  
-  const [token, setToken] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('mkulima_token');
-    }
-    return null;
-  });
-  
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Set loading to false after initial render
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 0);
-    
+    }, 100);
+
     return () => clearTimeout(timer);
   }, []);
+
+  const getToken = () => {
+    return localStorage.getItem('token');
+  };
+
+  const getUser = () => {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -84,8 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      localStorage.setItem('mkulima_token', response.token);
-      localStorage.setItem('mkulima_user', JSON.stringify(response.user));
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
       
       setToken(response.token);
       setUser(response.user);
@@ -114,8 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      localStorage.setItem('mkulima_token', response.token);
-      localStorage.setItem('mkulima_user', JSON.stringify(response.user));
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
       
       setToken(response.token);
       setUser(response.user);
@@ -126,17 +133,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('mkulima_token');
-    localStorage.removeItem('mkulima_user');
     setToken(null);
     setUser(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   };
 
   const updateUser = (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
-      localStorage.setItem('mkulima_user', JSON.stringify(updatedUser));
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 

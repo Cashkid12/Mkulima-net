@@ -14,8 +14,14 @@ import {
   Calendar,
   AlertCircle,
   Check,
-  X
+  X,
+  Star,
+  Users,
+  FileText,
+  Loader2
 } from 'lucide-react';
+import CreatePostModal from '@/components/CreatePostModal';
+import ReactionButton from '@/components/ReactionButton';
 
 interface User {
   id: string;
@@ -34,17 +40,30 @@ interface Comment {
   timestamp: string;
 }
 
+interface Reaction {
+  type: 'celebrate' | 'support' | 'love' | 'insightful' | 'funny';
+  count: number;
+  userReacted: boolean;
+}
+
 interface Post {
   id: string;
   userId: string;
   user: User;
   content: string;
   image?: string;
+  media?: string[];
   timestamp: string;
+  createdAt: string;
   likes: number;
   comments: Comment[];
+  commentsCount: number;
   shares: number;
   liked: boolean;
+  reactions: Reaction[];
+  reactionCounts: Record<string, number>;
+  totalReactions: number;
+  userReaction: string | null;
 }
 
 export default function MyPostsPage() {
@@ -55,101 +74,83 @@ export default function MyPostsPage() {
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [deletingPost, setDeletingPost] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
-
-  // Mock data for demonstration
-  const generateMockPosts = (): Post[] => {
-    const mockUser: User = {
-      id: '1',
-      firstName: 'Demo',
-      lastName: 'Farmer',
-      farmName: 'Demo Farm',
-      location: 'Nairobi, Kenya',
-      profilePicture: undefined
-    };
-
-    const mockComments: Comment[] = [
-      {
-        id: '1',
-        userId: '2',
-        userName: 'Mary Wanjiru',
-        content: 'Great preparation! What crops are you planting?',
-        timestamp: '1 hour ago'
-      },
-      {
-        id: '2',
-        userId: '3',
-        userName: 'Peter Mwangi',
-        content: 'Impressive yields! How much are you expecting?',
-        timestamp: '20 hours ago'
-      }
-    ];
-
-    return [
-      {
-        id: '1',
-        userId: '1',
-        user: mockUser,
-        content: 'Just completed soil preparation for the new planting season. Organic compost added and pH levels tested. Looking forward to a successful harvest! #SoilPreparation #OrganicFarming',
-        image: '/home.jpg',
-        timestamp: '2 hours ago',
-        likes: 42,
-        comments: [mockComments[0]],
-        shares: 8,
-        liked: true
-      },
-      {
-        id: '2',
-        userId: '1',
-        user: mockUser,
-        content: 'Harvest day for our first batch of tomatoes. Quality looks excellent and yields are promising. Fresh produce available for local markets. #HarvestSeason #FarmFresh',
-        image: undefined,
-        timestamp: '1 day ago',
-        likes: 28,
-        comments: [mockComments[1]],
-        shares: 12,
-        liked: false
-      },
-      {
-        id: '3',
-        userId: '1',
-        user: mockUser,
-        content: 'New irrigation system installed and fully operational. Water efficiency improved by 30% and crop health showing significant improvement. #Irrigation #WaterEfficiency #SustainableFarming',
-        image: undefined,
-        timestamp: '3 days ago',
-        likes: 15,
-        comments: [],
-        shares: 5,
-        liked: false
-      }
-    ];
-  };
 
   const fetchUserPosts = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockPosts = generateMockPosts();
-      
-      // Apply sorting
-      switch (sortBy) {
-        case 'mostLiked':
-          mockPosts.sort((a, b) => b.likes - a.likes);
-          break;
-        case 'mostCommented':
-          mockPosts.sort((a, b) => b.comments.length - a.comments.length);
-          break;
-        case 'newest':
-        default:
-          // Already sorted by timestamp in mock data
-          break;
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/auth/login');
+        return;
       }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/my-posts?sort=${sortBy}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch posts');
+      }
+
+      const data = await response.json();
       
-      setPosts(mockPosts);
+      // Transform backend data to match our interface
+      const transformedPosts: Post[] = data.posts.map((post: { 
+        _id: string; 
+        user: { 
+          _id: string; 
+          firstName: string; 
+          lastName: string; 
+          farmName?: string; 
+          location?: string; 
+          profilePicture?: string; 
+        }; 
+        content: string; 
+        media?: string[]; 
+        createdAt: string; 
+        likes?: string[]; 
+        comments?: Comment[]; 
+        sharesCount?: number; 
+        liked?: boolean; 
+        reactions?: Reaction[]; 
+        reactionCounts?: Record<string, number>; 
+        totalReactions?: number; 
+        userReaction?: string | null; 
+      }) => ({
+        id: post._id,
+        userId: post.user._id,
+        user: {
+          id: post.user._id,
+          firstName: post.user.firstName,
+          lastName: post.user.lastName,
+          farmName: post.user.farmName,
+          location: post.user.location,
+          profilePicture: post.user.profilePicture
+        },
+        content: post.content,
+        media: post.media,
+        image: post.media && post.media.length > 0 ? post.media[0] : undefined,
+        timestamp: new Date(post.createdAt).toLocaleDateString(),
+        createdAt: post.createdAt,
+        likes: post.likes?.length || 0,
+        comments: post.comments || [],
+        commentsCount: post.comments?.length || 0,
+        shares: post.sharesCount || 0,
+        liked: post.liked || false,
+        reactions: post.reactions || [],
+        reactionCounts: post.reactionCounts || {},
+        totalReactions: post.totalReactions || 0,
+        userReaction: post.userReaction || null
+      }));
+      
+      setPosts(transformedPosts);
       setLoading(false);
       
     } catch (err) {
@@ -164,26 +165,70 @@ export default function MyPostsPage() {
   };
 
   const handleSaveEdit = async (postId: string) => {
-    // Simulate save operation
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === postId 
-          ? { ...post, content: editContent }
-          : post
-      )
-    );
-    setEditingPost(null);
-    setEditContent('');
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: editContent })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update post');
+      }
+
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, content: editContent }
+            : post
+        )
+      );
+      setEditingPost(null);
+      setEditContent('');
+    } catch (err) {
+      console.error('Error updating post:', err);
+      alert('Failed to update post');
+    }
   };
 
   const handleDeletePost = async (postId: string) => {
-    // Simulate delete operation
-    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
-    setDeletingPost(null);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete post');
+      }
+
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+      setDeletingPost(null);
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      alert('Failed to delete post');
+    }
   };
 
   const handleCreatePost = () => {
-    router.push('/dashboard/posts/create');
+    setShowCreateModal(true);
+  };
+
+  const handlePostCreated = () => {
+    fetchUserPosts();
+    setShowCreateModal(false);
   };
 
   const handleSortChange = (newSort: 'newest' | 'mostLiked' | 'mostCommented') => {
@@ -297,13 +342,68 @@ export default function MyPostsPage() {
       {/* Engagement Summary */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         <div className="flex items-center space-x-6">
-          <div className="flex items-center text-gray-600">
-            <Heart className="h-4 w-4 mr-2" />
-            <span className="text-sm font-medium">{post.likes} likes</span>
-          </div>
+          {/* Reactions */}
+          <ReactionButton
+            postId={post.id}
+            userReaction={post.userReaction}
+            reactionCounts={post.reactionCounts}
+            totalReactions={post.totalReactions}
+            onReact={async (type) => {
+              try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${post.id}/react`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ type })
+                });
+
+                if (!response.ok) throw new Error('Failed to react');
+
+                const data = await response.json();
+                setPosts(prev => prev.map(p => 
+                  p.id === post.id 
+                    ? { ...p, reactionCounts: data.reactionCounts, userReaction: data.userReaction, totalReactions: data.totalReactions }
+                    : p
+                ));
+              } catch (err) {
+                console.error('Reaction error:', err);
+              }
+            }}
+            onRemoveReaction={async () => {
+              try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${post.id}/react`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+
+                if (!response.ok) throw new Error('Failed to remove reaction');
+
+                const data = await response.json();
+                setPosts(prev => prev.map(p => 
+                  p.id === post.id 
+                    ? { ...p, reactionCounts: data.reactionCounts, userReaction: null, totalReactions: data.totalReactions }
+                    : p
+                ));
+              } catch (err) {
+                console.error('Remove reaction error:', err);
+              }
+            }}
+          />
+          
           <div className="flex items-center text-gray-600">
             <MessageCircle className="h-4 w-4 mr-2" />
-            <span className="text-sm font-medium">{post.comments.length} comments</span>
+            <span className="text-sm font-medium">{post.commentsCount} comments</span>
           </div>
           {post.shares > 0 && (
             <div className="flex items-center text-gray-600">
@@ -463,6 +563,13 @@ export default function MyPostsPage() {
           </div>
         </div>
       )}
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onPostCreated={handlePostCreated}
+      />
     </div>
   );
 }

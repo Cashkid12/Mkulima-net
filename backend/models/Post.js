@@ -14,6 +14,11 @@ const postSchema = new mongoose.Schema({
   media: [{
     type: String // Cloudinary URL for images/videos
   }],
+  postType: {
+    type: String,
+    enum: ['text', 'image', 'video', 'article'],
+    default: 'text'
+  },
   productsTagged: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product'
@@ -37,6 +42,20 @@ const postSchema = new mongoose.Schema({
   likes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  }],
+  reactions: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    type: {
+      type: String,
+      enum: ['celebrate', 'support', 'love', 'insightful', 'funny']
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
   }],
   comments: [{
     user: {

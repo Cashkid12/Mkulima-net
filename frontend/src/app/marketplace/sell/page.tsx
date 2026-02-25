@@ -65,6 +65,7 @@ export default function SellProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -84,10 +85,14 @@ export default function SellProductPage() {
     brand: ''
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      Array.from(files).forEach(file => {
+      const newFiles = Array.from(files);
+      setImageFiles(prev => [...prev, ...newFiles]);
+      
+      // Preview images
+      newFiles.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
           setImages(prev => [...prev, reader.result as string]);
@@ -105,15 +110,89 @@ export default function SellProductPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Get authentication token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('You must be logged in to create a listing');
+      }
+      
+      // Upload images to Cloudinary
+      const uploadedImageUrls: string[] = [];
+      
+      if (imageFiles.length > 0) {
+        for (const file of imageFiles) {
+          const formDataObj = new FormData();
+          formDataObj.append('file', file);
+          formDataObj.append('upload_preset', 'mkulima_net');
+          
+          try {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+              method: 'POST',
+              body: formDataObj
+            });
+            
+            const uploadData = await uploadResponse.json();
+            if (uploadData.secure_url) {
+              uploadedImageUrls.push(uploadData.secure_url);
+            }
+          } catch (uploadErr) {
+            console.error('Image upload error:', uploadErr);
+            throw new Error('Failed to upload images to Cloudinary');
+          }
+        }
+      }
+      
+      // Prepare product data
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        price: parseFloat(formData.price),
+        currency: formData.currency,
+        quantity: parseInt(formData.quantity),
+        unit: formData.unit,
+        condition: formData.condition,
+        images: uploadedImageUrls, // Use the actual uploaded image URLs
+        location: {
+          county: formData.location,
+          town: formData.town
+        },
+        // Animal fields
+        ...(formData.category === 'livestock' && {
+          breed: formData.breed,
+          age: formData.age,
+          healthStatus: formData.healthStatus
+        }),
+        // Equipment fields
+        ...(formData.category === 'equipment' && {
+          year: formData.year ? parseInt(formData.year) : undefined,
+          brand: formData.brand
+        })
+      };
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(productData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create listing');
+      }
+      
+      const result = await response.json();
       
       // Redirect to marketplace
       router.push('/marketplace');
     } catch (err) {
-      setError('Failed to create listing. Please try again.');
+      console.error('Error creating listing:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create listing. Please try again.');
     } finally {
       setLoading(false);
     }

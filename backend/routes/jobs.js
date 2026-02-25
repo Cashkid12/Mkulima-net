@@ -1,117 +1,115 @@
 const express = require('express');
 const Job = require('../models/Job');
+const Application = require('../models/Application');
+const User = require('../models/User');
 const authenticateToken = require('../middleware/auth');
-const { validateJob, validate } = require('../middleware/validation');
 const router = express.Router();
 
 // @route   POST api/jobs
-// @desc    Create a new job
+// @desc    Post a new job
 // @access  Private
-router.post('/', authenticateToken, validateJob, validate, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const {
-      companyName,
       title,
-      description,
-      requirements,
+      companyName,
       location,
       jobType,
+      category,
       salary,
-      applicationDeadline,
-      experienceLevel
+      requiredSkills,
+      experienceRequired,
+      description,
+      deadline
     } = req.body;
 
+    // Validate required fields
+    if (!title || !companyName || !location || !jobType || !category || !description || !deadline) {
+      return res.status(400).json({ msg: 'Please provide all required fields' });
+    }
+
     const newJob = new Job({
-      companyName,
+      employerId: req.userId,
       title,
-      description,
-      requirements,
+      companyName,
       location,
       jobType,
+      category,
       salary,
-      applicationDeadline,
-      experienceLevel,
-      postedBy: req.user._id
+      requiredSkills,
+      experienceRequired,
+      description,
+      deadline
     });
 
-    await newJob.save();
+    const job = await newJob.save();
+    
+    // Populate employer data
+    const populatedJob = await Job.findById(job._id)
+      .populate('employerId', 'username firstName lastName profilePicture farmName location verified');
 
-    res.status(201).json({
-      success: true,
-      message: 'Job posted successfully',
-      job: newJob
-    });
+    res.json(populatedJob);
   } catch (err) {
-    console.error('Create job error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating job'
-    });
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
 // @route   GET api/jobs
-// @desc    Get all jobs with filtering
+// @desc    Get all jobs with pagination and filters
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const {
-      location,
-      jobType,
-      experienceLevel,
-      search,
-      page = 1,
-      limit = 10
-    } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
     let query = { isActive: true };
 
     // Apply filters
-    if (location) {
-      query.location = { $regex: location, $options: 'i' };
+    if (req.query.location) {
+      query['location.county'] = { $regex: req.query.location, $options: 'i' };
     }
 
-    if (jobType) {
-      query.jobType = jobType;
+    if (req.query.type) {
+      query.jobType = req.query.type;
     }
 
-    if (experienceLevel) {
-      query.experienceLevel = experienceLevel;
+    if (req.query.category) {
+      query.category = req.query.category;
     }
 
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { companyName: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+    if (req.query.experience) {
+      query.experienceRequired = req.query.experience;
     }
 
-    const skip = (page - 1) * limit;
+    if (req.query.minSalary || req.query.maxSalary) {
+      query['salary.amount'] = {};
+      if (req.query.minSalary) query['salary.amount'].$gte = parseFloat(req.query.minSalary);
+      if (req.query.maxSalary) query['salary.amount'].$lte = parseFloat(req.query.maxSalary);
+    }
 
     const jobs = await Job.find(query)
-      .populate('postedBy', 'username fullName profileImage')
+      .populate('employerId', 'username firstName lastName profilePicture farmName location verified')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limit);
 
     const total = await Job.countDocuments(query);
 
     res.json({
-      success: true,
       jobs,
       pagination: {
-        current: parseInt(page),
-        pages: Math.ceil(total / limit),
-        total
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalJobs: total,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
       }
     });
   } catch (err) {
-    console.error('Get jobs error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching jobs'
-    });
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
@@ -121,325 +119,305 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id)
-      .populate('postedBy', 'username fullName profileImage email');
+      .populate('employerId', 'username firstName lastName profilePicture farmName location verified');
 
     if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found'
-      });
+      return res.status(404).json({ msg: 'Job not found' });
     }
 
-    res.json({
-      success: true,
-      job
-    });
+    if (!job.isActive) {
+      return res.status(404).json({ msg: 'Job is no longer active' });
+    }
+
+    res.json(job);
   } catch (err) {
-    console.error('Get job error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching job'
-    });
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
 // @route   PUT api/jobs/:id
-// @desc    Update job
-// @access  Private
+// @desc    Update a job
+// @access  Private (Employer only)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
 
     if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found'
-      });
+      return res.status(404).json({ msg: 'Job not found' });
     }
 
-    // Check if user is the job poster
-    if (job.postedBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this job'
-      });
+    // Check if user owns the job
+    if (job.employerId.toString() !== req.userId) {
+      return res.status(401).json({ msg: 'User not authorized' });
     }
 
-    const updatedJob = await Job.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
-
-    res.json({
-      success: true,
-      message: 'Job updated successfully',
-      job: updatedJob
+    // Update job fields
+    Object.keys(req.body).forEach(key => {
+      if (key !== 'employerId') { // Prevent changing the employer
+        job[key] = req.body[key];
+      }
     });
+
+    await job.save();
+
+    // Populate employer data
+    const updatedJob = await Job.findById(job._id)
+      .populate('employerId', 'username firstName lastName profilePicture farmName location verified');
+
+    res.json(updatedJob);
   } catch (err) {
-    console.error('Update job error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating job'
-    });
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
 // @route   DELETE api/jobs/:id
-// @desc    Delete job
-// @access  Private
+// @desc    Delete a job
+// @access  Private (Employer only)
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
 
     if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found'
-      });
+      return res.status(404).json({ msg: 'Job not found' });
     }
 
-    // Check if user is the job poster
-    if (job.postedBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this job'
-      });
+    // Check if user owns the job
+    if (job.employerId.toString() !== req.userId) {
+      return res.status(401).json({ msg: 'User not authorized' });
     }
 
-    await Job.findByIdAndDelete(req.params.id);
+    await Job.findByIdAndRemove(req.params.id);
 
-    res.json({
-      success: true,
-      message: 'Job deleted successfully'
-    });
+    res.json({ msg: 'Job removed' });
   } catch (err) {
-    console.error('Delete job error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting job'
-    });
-  }
-});
-
-// @route   GET api/jobs/user/my-jobs
-// @desc    Get jobs posted by current user
-// @access  Private
-router.get('/user/my-jobs', authenticateToken, async (req, res) => {
-  try {
-    const jobs = await Job.find({ postedBy: req.user._id })
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      jobs
-    });
-  } catch (err) {
-    console.error('Get user jobs error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching user jobs'
-    });
-  }
-});
-
-// @route   GET api/jobs/suggestions/:userId
-// @desc    Get job suggestions based on user profile
-// @access  Private
-router.get('/suggestions/:userId', authenticateToken, async (req, res) => {
-  try {
-    // Ensure the user is authorized to access their own suggestions
-    if (req.params.userId !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to view these job suggestions'
-      });
-    }
-
-    // Fetch user profile
-    const User = require('../models/User');
-    const user = await User.findById(req.params.userId).select('skills certifications services crops livestock yearsExperience location');
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    // Calculate match scores for all active jobs
-    const allJobs = await Job.find({ isActive: true })
-      .populate('postedBy', 'username fullName profileImage')
-      .sort({ createdAt: -1 });
-
-    // Calculate match scores based on user profile
-    const scoredJobs = allJobs.map(job => {
-      let matchScore = 0;
-      const matchedSkills = [];
-
-      // Match skills
-      if (user.skills && Array.isArray(user.skills)) {
-        user.skills.forEach(userSkill => {
-          job.requirements.forEach(jobRequirement => {
-            // Case-insensitive partial matching for skills
-            if (jobRequirement.toLowerCase().includes(userSkill.name.toLowerCase()) ||
-                userSkill.name.toLowerCase().includes(jobRequirement.toLowerCase())) {
-              matchScore += 20; // Higher weight for skill match
-              matchedSkills.push(userSkill.name);
-            }
-          });
-        });
-      }
-
-      // Match certifications
-      if (user.certifications && Array.isArray(user.certifications)) {
-        user.certifications.forEach(cert => {
-          job.requirements.forEach(jobRequirement => {
-            if (jobRequirement.toLowerCase().includes(cert.name.toLowerCase()) ||
-                cert.name.toLowerCase().includes(jobRequirement.toLowerCase())) {
-              matchScore += 15; // Medium weight for certification match
-            }
-          });
-        });
-      }
-
-      // Match services offered
-      if (user.services && Array.isArray(user.services)) {
-        user.services.forEach(service => {
-          job.requirements.forEach(jobRequirement => {
-            if (jobRequirement.toLowerCase().includes(service.name.toLowerCase()) ||
-                service.name.toLowerCase().includes(jobRequirement.toLowerCase())) {
-              matchScore += 15; // Medium weight for service match
-            }
-          });
-        });
-      }
-
-      // Match crops and livestock
-      if (user.crops && Array.isArray(user.crops)) {
-        user.crops.forEach(crop => {
-          job.requirements.forEach(jobRequirement => {
-            if (jobRequirement.toLowerCase().includes(crop.toLowerCase()) ||
-                crop.toLowerCase().includes(jobRequirement.toLowerCase())) {
-              matchScore += 10; // Lower weight for crop match
-            }
-          });
-        });
-      }
-
-      if (user.livestock && Array.isArray(user.livestock)) {
-        user.livestock.forEach(animal => {
-          job.requirements.forEach(jobRequirement => {
-            if (jobRequirement.toLowerCase().includes(animal.toLowerCase()) ||
-                animal.toLowerCase().includes(jobRequirement.toLowerCase())) {
-              matchScore += 10; // Lower weight for livestock match
-            }
-          });
-        });
-      }
-
-      // Experience matching - bonus for matching experience level
-      if (user.yearsExperience > 0) {
-        if (job.experienceLevel === 'entry' && user.yearsExperience < 2) {
-          matchScore += 5;
-        } else if (job.experienceLevel === 'mid' && user.yearsExperience >= 2 && user.yearsExperience <= 5) {
-          matchScore += 10;
-        } else if (job.experienceLevel === 'senior' && user.yearsExperience > 5) {
-          matchScore += 15;
-        } else if (job.experienceLevel === 'executive' && user.yearsExperience > 8) {
-          matchScore += 20;
-        }
-      }
-
-      // Location matching - bonus if job location matches user location
-      if (user.location && job.location.toLowerCase().includes(user.location.toLowerCase())) {
-        matchScore += 10;
-      }
-
-      // Cap the match score at 100
-      const finalScore = Math.min(matchScore, 100);
-
-      return {
-        ...job.toObject(),
-        matchScore: finalScore,
-        matchedSkills: [...new Set(matchedSkills)] // Remove duplicates
-      };
-    });
-
-    // Sort jobs by match score (highest first)
-    const sortedJobs = scoredJobs.sort((a, b) => b.matchScore - a.matchScore);
-
-    // Return top 20 suggestions
-    const suggestions = sortedJobs.slice(0, 20);
-
-    res.json({
-      success: true,
-      jobs: suggestions,
-      totalSuggestions: suggestions.length
-    });
-  } catch (err) {
-    console.error('Get job suggestions error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching job suggestions'
-    });
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
 // @route   POST api/jobs/:id/apply
-// @desc    Apply for a job
-// @access  Private
+// @desc    Apply to a job
+// @access  Private (Applicant only)
 router.post('/:id/apply', authenticateToken, async (req, res) => {
   try {
-    const { coverLetter } = req.body;
+    const { message, cvUrl } = req.body;
     const jobId = req.params.id;
 
-    // Find the job
+    // Check if job exists
     const job = await Job.findById(jobId);
     if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found'
-      });
+      return res.status(404).json({ msg: 'Job not found' });
     }
 
-    // Check if user has already applied for this job
-    const existingApplication = job.applications.find(app => 
-      app.userId.toString() === req.user._id.toString()
-    );
-
-    if (existingApplication) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already applied for this job'
-      });
+    if (!job.isActive) {
+      return res.status(400).json({ msg: 'Job is no longer accepting applications' });
     }
 
-    // Add application to job
-    job.applications.push({
-      userId: req.user._id,
-      coverLetter: coverLetter || '',
-      appliedAt: new Date()
+    // Check if user has already applied
+    const existingApplication = await Application.findOne({
+      jobId: jobId,
+      applicantId: req.userId
     });
 
+    if (existingApplication) {
+      return res.status(400).json({ msg: 'You have already applied to this job' });
+    }
+
+    // Create new application
+    const newApplication = new Application({
+      jobId: jobId,
+      applicantId: req.userId,
+      message: message || '',
+      cvUrl: cvUrl || ''
+    });
+
+    const application = await newApplication.save();
+
+    // Add application to job's applications array
+    job.applications.push(application._id);
     await job.save();
 
-    res.status(201).json({
-      success: true,
-      message: 'Successfully applied for job',
-      application: {
-        jobId: job._id,
-        userId: req.user._id,
-        appliedAt: job.applications[job.applications.length - 1].appliedAt,
-        status: 'pending'
+    res.json(application);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/jobs/search
+// @desc    Search jobs by keyword
+// @access  Public
+router.get('/search', async (req, res) => {
+  try {
+    const { q, location, type, category, experience, minSalary, maxSalary, page = 1, limit = 10 } = req.query;
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    let query = { isActive: true };
+    
+    // Add search query
+    if (q) {
+      query.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { 'location.county': { $regex: q, $options: 'i' } },
+        { companyName: { $regex: q, $options: 'i' } },
+        { requiredSkills: { $in: [new RegExp(q, 'i')] } }
+      ];
+    }
+    
+    // Add filters
+    if (location) {
+      query['location.county'] = { $regex: location, $options: 'i' };
+    }
+    
+    if (type) {
+      query.jobType = type;
+    }
+    
+    if (category) {
+      query.category = category;
+    }
+    
+    if (experience) {
+      query.experienceRequired = experience;
+    }
+    
+    if (minSalary || maxSalary) {
+      query['salary.amount'] = {};
+      if (minSalary) query['salary.amount'].$gte = parseFloat(minSalary);
+      if (maxSalary) query['salary.amount'].$lte = parseFloat(maxSalary);
+    }
+    
+    const jobs = await Job.find(query)
+      .populate('employerId', 'username firstName lastName profilePicture farmName location verified')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    const total = await Job.countDocuments(query);
+    
+    res.json({
+      jobs,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalJobs: total,
+        hasNext: parseInt(page) < Math.ceil(total / parseInt(limit)),
+        hasPrev: parseInt(page) > 1
       }
     });
   } catch (err) {
-    console.error('Apply for job error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while applying for job'
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/jobs/employer/:employerId
+// @desc    Get jobs by employer ID
+// @access  Public
+router.get('/employer/:employerId', async (req, res) => {
+  try {
+    const jobs = await Job.find({ 
+      employerId: req.params.employerId,
+      isActive: true
+    })
+      .populate('employerId', 'username firstName lastName profilePicture farmName location verified')
+      .sort({ createdAt: -1 });
+
+    res.json(jobs);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/jobs/applications/:jobId
+// @desc    Get applications for a job (Employer only)
+// @access  Private
+router.get('/applications/:jobId', authenticateToken, async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.jobId);
+    
+    if (!job) {
+      return res.status(404).json({ msg: 'Job not found' });
+    }
+    
+    // Check if user owns the job
+    if (job.employerId.toString() !== req.userId) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+    
+    const applications = await Application.find({ jobId: req.params.jobId })
+      .populate('applicantId', 'username firstName lastName profilePicture farmName location verified')
+      .sort({ appliedAt: -1 });
+    
+    res.json(applications);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/jobs/dashboard/stats
+// @desc    Get job-related dashboard stats
+// @access  Private
+router.get('/dashboard/stats', authenticateToken, async (req, res) => {
+  try {
+    // Get stats for the authenticated user
+    const userId = req.userId;
+    
+    // Count jobs applied by user
+    const jobsApplied = await Application.countDocuments({ applicantId: userId });
+    
+    // Count jobs posted by user (as employer)
+    const jobsPosted = await Job.countDocuments({ employerId: userId });
+    
+    // Count total applications received for jobs posted by user
+    const totalApplications = await Application.countDocuments({
+      jobId: { $in: (await Job.find({ employerId: userId })).map(job => job._id) }
     });
+    
+    // Count pending applications for jobs posted by user
+    const pendingApplications = await Application.countDocuments({
+      jobId: { $in: (await Job.find({ employerId: userId })).map(job => job._id) },
+      status: 'pending'
+    });
+    
+    // Count accepted applications for jobs posted by user
+    const acceptedApplications = await Application.countDocuments({
+      jobId: { $in: (await Job.find({ employerId: userId })).map(job => job._id) },
+      status: 'accepted'
+    });
+    
+    res.json({
+      jobsApplied,
+      jobsPosted,
+      totalApplications,
+      pendingApplications,
+      acceptedApplications
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/jobs/applications/user
+// @desc    Get applications made by user (Applicant only)
+// @access  Private
+router.get('/applications/user', authenticateToken, async (req, res) => {
+  try {
+    const applications = await Application.find({ applicantId: req.userId })
+      .populate('jobId', 'title companyName location jobType category salary deadline')
+      .sort({ appliedAt: -1 });
+    
+    res.json(applications);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 

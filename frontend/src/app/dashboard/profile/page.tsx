@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   User, 
@@ -29,38 +29,187 @@ export default function FarmerProfilePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('about');
   const [isFollowing, setIsFollowing] = useState(false);
+  interface ProfileData {
+    name: string;
+    username: string;
+    farmName: string;
+    location: string;
+    bio: string;
+    isVerified: boolean;
+    rating: number;
+    experienceLevel: string;
+    followers: number;
+    following: number;
+    posts: number;
+    products: number;
+    reviews: number;
+    farmSize: string;
+    farmImages: string[];
+    availabilityStatus: string;
+    skills: {
+      name: string;
+      level: string;
+    }[];
+    certifications: string[];
+    crops: string[];
+    livestock: string[];
+    yearsExperience: number;
+  }
 
-  const profileData = {
-    name: 'John Kariuki',
-    username: '@johnkariuki',
-    farmName: 'Green Valley Farm',
-    location: 'Nakuru County, Kenya',
-    bio: 'Passionate farmer specializing in organic maize and dairy production. 10+ years of experience in sustainable farming practices.',
-    isVerified: true,
-    rating: 4.8,
-    experienceLevel: 'Professional',
-    followers: 1242,
-    following: 856,
-    posts: 156,
-    products: 23,
-    reviews: 89,
-    farmSize: '15 acres',
-    farmImages: [
-      'https://images.unsplash.com/photo-1595280151135-7ae8f7d55681?w=600',
-      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600',
-      'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=600'
-    ],
-    availabilityStatus: 'Open to Work'
-  };
+  interface Post {
+    id: string;
+    content: string;
+    image?: string;
+    likes: number;
+    comments: number;
+    timestamp: string;
+  }
 
-  const skills = [
-    { name: 'Organic Farming', level: 'Expert' },
-    { name: 'Dairy Management', level: 'Expert' },
-    { name: 'Irrigation Systems', level: 'Professional' },
-    { name: 'Soil Testing', level: 'Professional' },
-    { name: 'Crop Rotation', level: 'Expert' },
-    { name: 'Livestock Breeding', level: 'Professional' }
-  ];
+  interface Product {
+    id: string;
+    name: string;
+    price: string;
+    image: string;
+    category: string;
+  }
+
+  interface Review {
+    id: number;
+    reviewer: string;
+    rating: number;
+    comment: string;
+    date: string;
+  }
+
+  interface ApiResponse {
+    _id: string;
+    name: string;
+    description: string;
+    category: string;
+    subcategory?: string;
+    price: number;
+    currency: string;
+    quantity: number;
+    unit: string;
+    condition: string;
+    images: string[];
+    location: {
+      county: string;
+      town?: string;
+    };
+    seller: {
+      id: string;
+      name: string;
+      type: string;
+      verified: boolean;
+    };
+    isAvailable: boolean;
+    createdAt: string;
+    updatedAt: string;
+    views: number;
+  }
+
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        // Fetch user profile
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+
+        const data = await response.json();
+
+        // Map the response to match our expected structure
+        const mappedProfileData = {
+          name: `${data.user.firstName} ${data.user.lastName}`,
+          username: `@${data.user.username || data.user.firstName.toLowerCase()}_${data.user.lastName.toLowerCase()}`,
+          farmName: data.user.farmName || '',
+          location: `${data.user.location?.county || data.user.location || ''}, Kenya`,
+          bio: data.user.bio || '',
+          isVerified: data.user.verified || false,
+          rating: 4.5, // Placeholder - would come from actual ratings system
+          experienceLevel: 'Professional', // Would be calculated from yearsExperience
+          followers: data.user.followersCount || 0,
+          following: data.user.followingCount || 0,
+          posts: data.user.postsCount || 0,
+          products: 0, // Will be updated after fetching products
+          reviews: 0, // Would come from reviews endpoint
+          farmSize: data.user.farmSize || '',
+          farmImages: [], // Would come from user's post images
+          availabilityStatus: data.user.availabilityStatus || 'Not looking',
+          skills: Array.isArray(data.user.skills) 
+            ? data.user.skills.map((s: any) => ({
+                name: typeof s === 'string' ? s : s.name,
+                level: typeof s === 'string' ? 'Intermediate' : s.level || 'Intermediate'
+              }))
+            : [],
+          certifications: data.user.certifications || [],
+          crops: data.user.crops || [],
+          livestock: data.user.livestock || [],
+          yearsExperience: data.user.yearsExperience || 0
+        };
+
+        setProfileData(mappedProfileData);
+
+        // Fetch products for this user
+        const productsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/seller/${data.user._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (productsResponse.ok) {
+          const productsData: ApiResponse[] = await productsResponse.json();
+          const formattedProducts = productsData.map((prod: ApiResponse) => ({
+            id: prod._id,
+            name: prod.name,
+            price: `${prod.currency} ${prod.price}/${prod.unit}`,
+            image: prod.images && prod.images.length > 0 ? prod.images[0] : '',
+            category: prod.category
+          }));
+          
+          setProducts(formattedProducts);
+          
+          // Update the products count in profile data
+          setProfileData(prev => prev ? {
+            ...prev,
+            products: productsData.length
+          } : null);
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  if (loading || !profileData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
 
   const services = [
     { name: 'Farm Consultation', description: 'Expert advice on farming practices', price: 'KES 2,000/hr' },
@@ -70,33 +219,9 @@ export default function FarmerProfilePage() {
     { name: 'Livestock Breeding', description: 'Breeding services for cattle', price: 'KES 3,000/service' }
   ];
 
-  const certifications = [
-    { 
-      name: 'Organic Farming Certificate', 
-      issuer: 'Kenya Agricultural Research Institute',
-      date: '2020',
-      fileUrl: '#'
-    },
-    { 
-      name: 'Dairy Production Certification', 
-      issuer: 'Ministry of Agriculture',
-      date: '2019',
-      fileUrl: '#'
-    },
-    { 
-      name: 'Agribusiness Management Diploma', 
-      issuer: 'University of Nairobi',
-      date: '2018',
-      fileUrl: '#'
-    }
-  ];
-
-  const crops = ['Maize', 'Beans', 'Wheat', 'Potatoes', 'Tomatoes'];
-  const livestock = ['Cows', 'Goats', 'Poultry', 'Fish', 'Sheep'];
-
-  const posts = [
+  const posts: Post[] = [
     {
-      id: 1,
+      id: "1",
       content: 'Just harvested 50 bags of organic maize! Quality produce available for sale.',
       image: 'https://images.unsplash.com/photo-1595280151135-7ae8f7d55681?w=600',
       likes: 42,
@@ -104,29 +229,12 @@ export default function FarmerProfilePage() {
       timestamp: '2 hours ago'
     },
     {
-      id: 2,
+      id: "2",
       content: 'New irrigation system installed. Water efficiency improved by 40%!',
       image: 'https://images.unsplash.com/photo-1595280151135-7ae8f7d55681?w=600',
       likes: 28,
       comments: 5,
       timestamp: '1 day ago'
-    }
-  ];
-
-  const products = [
-    {
-      id: 1,
-      name: 'Fresh Organic Maize',
-      price: 'KES 3,500/bag',
-      image: 'https://images.unsplash.com/photo-1595280151135-7ae8f7d55681?w=600',
-      category: 'Produce'
-    },
-    {
-      id: 2,
-      name: 'Dairy Milk',
-      price: 'KES 50/liter',
-      image: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=600',
-      category: 'Dairy'
     }
   ];
 
@@ -314,7 +422,7 @@ export default function FarmerProfilePage() {
                 Skills & Expertise
               </h2>
               <div className="space-y-3">
-                {skills.map((skill) => (
+                {profileData.skills.map((skill: { name: string; level: string }) => (
                   <div key={skill.name} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <span className="text-gray-800">{skill.name}</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -344,7 +452,7 @@ export default function FarmerProfilePage() {
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Crops Produced</p>
                   <div className="flex flex-wrap gap-2">
-                    {crops.map((crop) => (
+                    {profileData.crops.map((crop: string) => (
                       <span key={crop} className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
                         {crop}
                       </span>
@@ -354,7 +462,7 @@ export default function FarmerProfilePage() {
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Livestock</p>
                   <div className="flex flex-wrap gap-2">
-                    {livestock.map((animal) => (
+                    {profileData.livestock.map((animal: string) => (
                       <span key={animal} className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs">
                         {animal}
                       </span>
@@ -386,7 +494,7 @@ export default function FarmerProfilePage() {
               Skills & Expertise
             </h2>
             <div className="space-y-3">
-              {skills.map((skill) => (
+              {profileData.skills.map((skill: { name: string; level: string }) => (
                 <div key={skill.name} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                   <span className="text-gray-800">{skill.name}</span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -410,12 +518,12 @@ export default function FarmerProfilePage() {
               Certifications
             </h2>
             <div className="space-y-4">
-              {certifications.map((cert) => (
-                <div key={cert.name} className="border border-gray-200 rounded-lg p-4">
+              {profileData.certifications.map((cert: string, index: number) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-900">{cert.name}</h3>
+                    <h3 className="font-semibold text-gray-900">Certificate {index + 1}</h3>
                     <a 
-                      href={cert.fileUrl} 
+                      href={cert} 
                       className="text-sm text-green-600 hover:text-green-700 font-medium"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -423,15 +531,8 @@ export default function FarmerProfilePage() {
                       View Certificate
                     </a>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                    <span className="flex items-center">
-                      <User className="h-4 w-4 mr-1" />
-                      Issuer: {cert.issuer}
-                    </span>
-                    <span className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Date: {cert.date}
-                    </span>
+                  <div className="text-sm text-gray-600 break-all">
+                    {cert}
                   </div>
                 </div>
               ))}
@@ -496,25 +597,36 @@ export default function FarmerProfilePage() {
         {activeTab === 'products' && (
           <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Products</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {products.map((product) => (
-                <div key={product.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-40 object-cover"
-                  />
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{product.category}</p>
-                    <p className="font-semibold text-green-600 mb-3">{product.price}</p>
-                    <button className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
-                      View Details
-                    </button>
+            {products.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {products.map((product) => (
+                  <div key={product.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <img 
+                      src={product.image} 
+                      alt={product.name} 
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
+                      <p className="text-sm text-gray-600 mb-2">{product.category}</p>
+                      <p className="font-semibold text-green-600 mb-3">{product.price}</p>
+                      <button 
+                        className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+                        onClick={() => router.push(`/marketplace/product/${product.id}`)}
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No products listed</h3>
+                <p className="text-gray-600">This seller hasn&apos;t listed any products yet.</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -544,7 +656,6 @@ export default function FarmerProfilePage() {
         )}
 
 
-
         {/* Production Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-xl shadow-sm p-6">
@@ -553,7 +664,7 @@ export default function FarmerProfilePage() {
               Crops Produced
             </h2>
             <div className="flex flex-wrap gap-2">
-              {crops.map((crop) => (
+              {profileData.crops.map((crop: string) => (
                 <span key={crop} className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
                   {crop}
                 </span>
@@ -567,7 +678,7 @@ export default function FarmerProfilePage() {
               Livestock Raised
             </h2>
             <div className="flex flex-wrap gap-2">
-              {livestock.map((animal) => (
+              {profileData.livestock.map((animal: string) => (
                 <span key={animal} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
                   {animal}
                 </span>

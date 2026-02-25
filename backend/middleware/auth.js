@@ -15,9 +15,9 @@ const authenticateToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(decoded.user.id).select('-password');
     
-    if (!user || !user.isActive) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired token'

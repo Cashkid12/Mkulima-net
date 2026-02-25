@@ -17,7 +17,6 @@ import {
   Phone,
   MapPin
 } from 'lucide-react';
-import Header from '@/components/Header';
 import SiteFooter from '@/components/SiteFooter';
 
 export default function HomePage() {
@@ -38,6 +37,92 @@ export default function HomePage() {
       </div>
     );
   }
+
+  const trustIndicators = [
+    {
+      icon: Shield,
+      title: "Verified Farmer Profiles",
+      description: "Every farmer is verified to build trust and transparency across the platform."
+    },
+    {
+      icon: ShoppingBag,
+      title: "Smart Local Marketplace",
+      description: "Buy and sell crops, livestock, and farm inputs based on your location."
+    },
+    {
+      icon: MessageCircle,
+      title: "Secure Communication",
+      description: "Chat safely with buyers, suppliers, and employers inside the platform."
+    },
+    {
+      icon: Briefcase,
+      title: "Real Agricultural Opportunities",
+      description: "Access verified jobs, internships, and agribusiness partnerships."
+    }
+  ];
+
+  const features = [
+    {
+      icon: Users,
+      title: "Social Feed for Farmers",
+      description: "Share farm updates, learn from others, and grow your network."
+    },
+    {
+      icon: ShoppingBag,
+      title: "Local Marketplace",
+      description: "Buy and sell crops, livestock, and farm inputs."
+    },
+    {
+      icon: Shield,
+      title: "Professional Profiles",
+      description: "Build credibility and showcase your farming expertise."
+    },
+    {
+      icon: Briefcase,
+      title: "Jobs & Internships",
+      description: "Find agricultural jobs, internships, and farm partnerships."
+    },
+    {
+      icon: MessageCircle,
+      title: "Secure Messaging",
+      description: "Communicate directly with verified users."
+    },
+    {
+      icon: ShoppingBag,
+      title: "Farm Services",
+      description: "Access equipment rental, consulting, and technical services."
+    }
+  ];
+
+  const samplePosts = [
+    {
+      id: 1,
+      farmer: "Mary Wanjiru",
+      location: "Kiambu County",
+      content: "New dairy cows arrived today! Excited for increased milk production.",
+      time: "2 hours ago",
+      likes: 42,
+      image: "/placeholder-farm-1.jpg"
+    },
+    {
+      id: 2,
+      farmer: "Peter Mwangi",
+      location: "Nyeri County",
+      content: "Soil testing completed. Perfect pH for coffee farming.",
+      time: "5 hours ago",
+      likes: 28,
+      image: "/placeholder-farm-2.jpg"
+    },
+    {
+      id: 3,
+      farmer: "Sarah Kimani",
+      location: "Nakuru County",
+      content: "Fresh organic vegetables available for pickup.",
+      time: "1 day ago",
+      likes: 15,
+      image: "/placeholder-farm-3.jpg"
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-white">
@@ -269,200 +354,161 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-lg font-bold text-gray-900">Jobs & Internships</h3>
-                    <p className="text-gray-600 mt-1">Find agricultural opportunities and connect with employers</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 mt-1">
-                    <div className="bg-green-100 p-3 rounded-full">
-                      <MessageCircle className="h-6 w-6 text-green-600" />
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-lg font-bold text-gray-900">Messaging & Networking</h3>
-                    <p className="text-gray-600 mt-1">Communicate safely with verified buyers, suppliers, and employers</p>
+                    <h3 className="text-lg font-bold text-gray-900">Jobs & Employment</h3>
+                    <p className="text-gray-600 mt-1">Find agricultural jobs, internships, and partnership opportunities</p>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="flex justify-center">
-              <div className="bg-gray-100 rounded-2xl p-8 w-full max-w-md">
-                <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
-                  <div className="flex items-center mb-3">
-                    <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center">
-                      <Users className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="font-medium text-gray-900">John Kariuki</p>
-                      <p className="text-sm text-gray-500">Nakuru County</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-700">Just harvested 50 bags of organic maize! Quality produce available for sale.</p>
+            <div className="bg-gray-50 rounded-2xl p-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Join thousands of farmers already growing together</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-600 mr-3" />
+                  <span className="text-gray-700">Free to join and use</span>
                 </div>
                 
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <div className="flex items-center mb-3">
-                    <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center">
-                      <ShoppingBag className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="font-medium text-gray-900">Fresh Tomatoes</p>
-                      <p className="text-sm text-gray-500">Ksh 200/bag</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-700">Organic tomatoes from Kiambu County. Available for immediate pickup.</p>
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-600 mr-3" />
+                  <span className="text-gray-700">Verified farmer community</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-600 mr-3" />
+                  <span className="text-gray-700">Secure transactions</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-600 mr-3" />
+                  <span className="text-gray-700">Local marketplace connections</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Check className="h-5 w-5 text-green-600 mr-3" />
+                  <span className="text-gray-700">24/7 customer support</span>
                 </div>
               </div>
+              
+              <Link 
+                href="/auth/register"
+                className="mt-8 block w-full py-4 bg-green-600 text-white text-center font-medium rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Create Free Account
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5️⃣ COMMUNITY PREVIEW */}
+      {/* 5️⃣ TESTIMONIALS */}
       <section className="py-20 bg-green-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Join Our Growing Community</h2>
-            <p className="text-xl text-gray-600">See what farmers are sharing today</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">What Farmers Are Saying</h2>
+            <p className="text-xl text-gray-600">Real stories from our community</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl p-8 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
-                  <Users className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="font-semibold text-gray-900">Mary Wanjiru</p>
-                  <p className="text-sm text-gray-500">Kiambu County</p>
-                </div>
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
               </div>
-              <p className="text-gray-700 mb-4">New dairy cows arrived today! Looking forward to increased milk production. #Livestock #Farming</p>
-              <div className="flex items-center text-sm text-gray-500">
-                <span>2 hours ago</span>
-                <span className="mx-2">•</span>
-                <span>42 likes</span>
+              <p className="text-gray-600 mb-6 italic">
+                {"\"MkulimaNet helped me sell my maize harvest to buyers in Nairobi within days. The platform is a game-changer for us farmers!\""}
+              </p>
+              <div className="flex items-center">
+                <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-green-600 font-semibold">JM</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">John Mwangi</p>
+                  <p className="text-sm text-gray-600">Maize Farmer, Nakuru</p>
+                </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl p-8 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
-                  <Leaf className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="font-semibold text-gray-900">Peter Mwangi</p>
-                  <p className="text-sm text-gray-500">Nyeri County</p>
-                </div>
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
               </div>
-              <p className="text-gray-700 mb-4">Soil testing completed. pH levels perfect for coffee farming in this region. #Coffee #SoilHealth</p>
-              <div className="flex items-center text-sm text-gray-500">
-                <span>5 hours ago</span>
-                <span className="mx-2">•</span>
-                <span>28 likes</span>
+              <p className="text-gray-600 mb-6 italic">
+                {"\"I found my current job through MkulimaNet. The job board has genuine opportunities for agricultural professionals.\""}
+              </p>
+              <div className="flex items-center">
+                <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-green-600 font-semibold">SW</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Sarah Wanjiku</p>
+                  <p className="text-sm text-gray-600">Agricultural Engineer</p>
+                </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl p-8 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
-                  <ShoppingBag className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="font-semibold text-gray-900">Sarah Kimani</p>
-                  <p className="text-sm text-gray-500">Nakuru County</p>
-                </div>
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <Star className="h-5 w-5 text-yellow-400 fill-current" />
               </div>
-              <p className="text-gray-700 mb-4">Organic vegetables available for pickup. Fresh harvest daily! #Organic #Vegetables</p>
-              <div className="flex items-center text-sm text-gray-500">
-                <span>1 day ago</span>
-                <span className="mx-2">•</span>
-                <span>15 likes</span>
+              <p className="text-gray-600 mb-6 italic">
+                {"\"The community aspect is amazing. I've learned so much from other farmers and made valuable business connections.\""}
+              </p>
+              <div className="flex items-center">
+                <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-green-600 font-semibold">DK</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">David Kiprotich</p>
+                  <p className="text-sm text-gray-600">Coffee Farmer, Kericho</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6️⃣ CALL TO ACTION */}
-      <section className="py-20 bg-green-700 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Join thousands of farmers growing together</h2>
-          <p className="text-xl mb-10 text-green-100">
-            Connect with Kenya&apos;s agricultural community today
+      {/* 6️⃣ CTA SECTION */}
+      <section className="py-20 bg-gradient-to-r from-green-600 to-green-700">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Ready to Transform Your Agricultural Business?
+          </h2>
+          <p className="text-xl text-green-100 mb-10">
+            Join thousands of farmers who are already growing together on MkulimaNet.
           </p>
-          <Link
-            href="/auth/register"
-            className="inline-block px-12 py-4 bg-white text-green-700 font-bold rounded-lg shadow-lg hover:bg-green-50 transition duration-300 text-lg"
-          >
-            Create Free Account
-          </Link>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link 
+              href="/auth/register" 
+              className="px-8 py-4 bg-white text-green-600 font-bold rounded-lg shadow-lg hover:bg-gray-100 transition-colors text-center"
+            >
+              Get Started Free
+            </Link>
+            <Link 
+              href="/auth/login" 
+              className="px-8 py-4 bg-transparent text-white font-bold rounded-lg border-2 border-white hover:bg-white hover:text-green-600 transition-colors text-center"
+            >
+              Sign In
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* 7️⃣ FOOTER */}
-      <footer className="bg-gray-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="mb-4">
-                <span className="text-xl font-bold">MkulimaNet</span>
-              </div>
-              <p className="text-gray-400 mb-4">
-                Kenya&apos;s premier agriculture social network and marketplace connecting farmers, buyers, and suppliers.
-              </p>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <Mail className="h-5 w-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <Phone className="h-5 w-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white">
-                  <MapPin className="h-5 w-5" />
-                </a>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Platform</h4>
-              <ul className="space-y-2">
-                <li><Link href="/dashboard/feed" className="text-gray-400 hover:text-white">Social Feed</Link></li>
-                <li><Link href="/dashboard/feed" className="text-gray-400 hover:text-white">Marketplace</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white">Jobs Board</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white">Farmer Profiles</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Company</h4>
-              <ul className="space-y-2">
-                <li><Link href="#" className="text-gray-400 hover:text-white">About Us</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white">Careers</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white">Blog</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white">Press</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Support</h4>
-              <ul className="space-y-2">
-                <li><Link href="#" className="text-gray-400 hover:text-white">Help Center</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white">Contact Us</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white">Privacy Policy</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white">Terms of Service</Link></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
-            <p>&copy; 2026 MkulimaNet. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

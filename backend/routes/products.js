@@ -2,6 +2,7 @@ const express = require('express');
 const Product = require('../models/Product');
 const User = require('../models/User');
 const authenticateToken = require('../middleware/auth');
+const mongoose = require('mongoose'); // Add mongoose for ObjectId conversion
 const router = express.Router();
 
 // @route   POST api/products
@@ -124,40 +125,77 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Handle seller type filter
-    if (req.query.sellerType) {
-      // This requires aggregation to filter by seller's role
-      // For now, we'll handle this in the application layer
-    }
-
-    let productsQuery = Product.find(query)
-      .populate('seller', 'username profilePicture farmName location role verified')
-      .sort({ createdAt: -1 });
-
-    // If seller type filter is applied, we need to filter after population
+    // Handle filters that require post-query processing
+    let postQueryFilter = {};
+    
     if (req.query.sellerType && req.query.sellerType !== 'all') {
-      const allProducts = await productsQuery;
-      const filteredProducts = allProducts.filter(p => 
-        p.seller && p.seller.role === req.query.sellerType
+      postQueryFilter.sellerType = req.query.sellerType;
+    }
+    
+    if (req.query.freshness && req.query.freshness !== 'all') {
+      postQueryFilter.freshness = req.query.freshness;
+    }
+    
+    // If we have post-query filters, we need to get all matching records first
+    if (Object.keys(postQueryFilter).length > 0) {
+      // Need to populate seller if filtering by seller type
+      const populateOptions = 'username profilePicture farmName location role verified';
+      const allProducts = await Product.find(query).populate('seller', populateOptions);
+      
+      // Apply post-query filters
+      let filteredProducts = allProducts;
+      
+      if (postQueryFilter.sellerType) {
+        filteredProducts = filteredProducts.filter(p => 
+          p.seller && p.seller.role === postQueryFilter.sellerType
+        );
+      }
+      
+      if (postQueryFilter.freshness) {
+        const now = new Date();
+        filteredProducts = filteredProducts.filter(p => {
+          const productDate = new Date(p.createdAt);
+          const diffInHours = (now.getTime() - productDate.getTime()) / (1000 * 60 * 60);
+          
+          switch (postQueryFilter.freshness) {
+            case '24h': return diffInHours <= 24;
+            case '3d': return diffInHours <= 72;
+            case '7d': return diffInHours <= 168;
+            default: return true;
+          }
+        });
+      }
+      
+      // Apply sorting and pagination to filtered results
+      const sortedProducts = filteredProducts.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       
-      const start = skip;
-      const end = skip + limit;
-      const paginatedProducts = filteredProducts.slice(start, end);
+      const startIndex = skip;
+      const endIndex = skip + limit;
+      const paginatedProducts = sortedProducts.slice(startIndex, endIndex);
+      
+      // Find all products matching base query for total count
+      const totalProducts = filteredProducts.length;
       
       return res.json({
         products: paginatedProducts,
         pagination: {
           currentPage: page,
-          totalPages: Math.ceil(filteredProducts.length / limit),
-          totalProducts: filteredProducts.length,
-          hasNext: end < filteredProducts.length,
+          totalPages: Math.ceil(totalProducts / limit),
+          totalProducts: totalProducts,
+          hasNext: endIndex < totalProducts,
           hasPrev: page > 1
         }
       });
     }
-
-    const products = await productsQuery.skip(skip).limit(limit);
+    
+    const products = await Product.find(query)
+      .populate('seller', 'username profilePicture farmName location role verified')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
     const total = await Product.countDocuments(query);
 
     res.json({
@@ -352,6 +390,183 @@ router.get('/location/nearby', async (req, res) => {
       .populate('seller', 'username profilePicture farmName location');
 
     res.json(products);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/products/search
+// @desc    Search products by keyword
+// @access  Public
+router.get('/search', async (req, res) => {
+  try {
+    const { q, category, county, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    let query = { isAvailable: true };
+    
+    // Add search query
+    if (q) {
+      query.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { 'location.county': { $regex: q, $options: 'i' } },
+        { 'seller.username': { $regex: q, $options: 'i' } }
+      ];
+    }
+    
+    // Add category filter
+    if (category) {
+      query.category = category;
+    }
+    
+    // Add location filter
+    if (county) {
+      query['location.county'] = { $regex: county, $options: 'i' };
+    }
+    
+    // Add price filter
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = parseFloat(minPrice);
+      if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+    }
+    
+    // Handle filters that require post-query processing
+    let postQueryFilter = {};
+    
+    if (req.query.sellerType && req.query.sellerType !== 'all') {
+      postQueryFilter.sellerType = req.query.sellerType;
+    }
+    
+    if (req.query.freshness && req.query.freshness !== 'all') {
+      postQueryFilter.freshness = req.query.freshness;
+    }
+    
+    // If we have post-query filters, we need to get all matching records first
+    if (Object.keys(postQueryFilter).length > 0) {
+      // Need to populate seller if filtering by seller type
+      const populateOptions = 'username profilePicture farmName location role verified';
+      const allProducts = await Product.find(query).populate('seller', populateOptions);
+      
+      // Apply post-query filters
+      let filteredProducts = allProducts;
+      
+      if (postQueryFilter.sellerType) {
+        filteredProducts = filteredProducts.filter(p => 
+          p.seller && p.seller.role === postQueryFilter.sellerType
+        );
+      }
+      
+      if (postQueryFilter.freshness) {
+        const now = new Date();
+        filteredProducts = filteredProducts.filter(p => {
+          const productDate = new Date(p.createdAt);
+          const diffInHours = (now.getTime() - productDate.getTime()) / (1000 * 60 * 60);
+          
+          switch (postQueryFilter.freshness) {
+            case '24h': return diffInHours <= 24;
+            case '3d': return diffInHours <= 72;
+            case '7d': return diffInHours <= 168;
+            default: return true;
+          }
+        });
+      }
+      
+      // Apply sorting and pagination to filtered results
+      const sortedProducts = filteredProducts.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      const startIndex = skip;
+      const endIndex = skip + parseInt(limit);
+      const paginatedProducts = sortedProducts.slice(startIndex, endIndex);
+      
+      // Find all products matching base query for total count
+      const totalProducts = filteredProducts.length;
+      
+      return res.json({
+        products: paginatedProducts,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(totalProducts / parseInt(limit)),
+          totalProducts: totalProducts,
+          hasNext: endIndex < totalProducts,
+          hasPrev: parseInt(page) > 1
+        }
+      });
+    }
+    
+    const products = await Product.find(query)
+      .populate('seller', 'username profilePicture farmName location role verified')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    const total = await Product.countDocuments(query);
+    
+    res.json({
+      products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalProducts: total,
+        hasNext: parseInt(page) < Math.ceil(total / parseInt(limit)),
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/products/dashboard/stats
+// @desc    Get marketplace stats for a user
+// @access  Private
+router.get('/dashboard/stats', authenticateToken, async (req, res) => {
+  try {
+    // Get user ID from authenticated token
+    const userId = req.userId;
+    
+    // Count total listings for the user
+    const totalListings = await Product.countDocuments({
+      seller: userId
+    });
+    
+    // Count active listings for the user
+    const activeListings = await Product.countDocuments({
+      seller: userId,
+      isAvailable: true
+    });
+    
+    // Count sold listings for the user (not available)
+    const soldListings = await Product.countDocuments({
+      seller: userId,
+      isAvailable: false
+    });
+    
+    // Calculate total views for all user's listings
+    const totalViewsResult = await Product.aggregate([
+      { $match: { seller: mongoose.Types.ObjectId(userId) } },
+      { $group: { _id: null, totalViews: { $sum: "$views" } } }
+    ]);
+    
+    const totalViews = totalViewsResult.length > 0 ? totalViewsResult[0].totalViews : 0;
+    
+    // For messages received, we would typically have a separate Messages collection
+    // For now, we'll return 0 and this can be enhanced later
+    const messagesReceived = 0; // This would come from a messages collection
+    
+    res.json({
+      totalListings,
+      activeListings,
+      soldListings,
+      totalViews,
+      messagesReceived
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

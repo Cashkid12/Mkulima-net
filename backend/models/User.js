@@ -38,15 +38,26 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  coverImage: {
+    type: String,
+    default: null
+  },
   bio: {
     type: String,
     maxlength: 500,
     default: ''
   },
   location: {
-    type: String,
-    trim: true,
-    default: ''
+    county: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    subCounty: {
+      type: String,
+      trim: true,
+      default: ''
+    }
   },
   farmName: {
     type: String,
@@ -74,6 +85,15 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // Following and followers arrays
+  following: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  followers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   // Saved posts
   savedPosts: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -92,21 +112,151 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  
+
+  // Farm information
+  farmSize: {
+    type: String,
+    default: null
+  },
+  farmingType: {
+    type: String,
+    enum: ['crops', 'livestock', 'mixed', 'agribusiness'],
+    default: 'crops'
+  },
+  crops: [{
+    type: String
+  }],
+  livestock: [{
+    type: String
+  }],
+  yearsExperience: {
+    type: Number,
+    default: 0
+  },
+  certifications: [{
+    type: String
+  }],
+
+  // Professional information
+  skills: [{
+    name: { type: String, required: true },
+    level: { 
+      type: String, 
+      enum: ['Beginner', 'Intermediate', 'Professional', 'Expert'], 
+      default: 'Beginner' 
+    }
+  }],
+  lookingFor: [{
+    type: String,
+    enum: ['jobs', 'buyers', 'partnerships', 'internships']
+  }],
+  availabilityStatus: { 
+    type: String, 
+    enum: ['open', 'not_looking'], 
+    default: 'not_looking' 
+  },
+  education: {
+    type: String,
+    default: null
+  },
+
   // Privacy settings
+  privacySettings: {
+    profileVisibility: {
+      type: String,
+      enum: ['public', 'followers', 'private'],
+      default: 'public'
+    },
+    defaultPostVisibility: {
+      type: String,
+      enum: ['public', 'followers'],
+      default: 'public'
+    },
+    messagePermission: {
+      type: String,
+      enum: ['everyone', 'followers', 'no_one'],
+      default: 'everyone'
+    },
+    allowProductMessages: {
+      type: Boolean,
+      default: true
+    },
+    allowJobMessages: {
+      type: Boolean,
+      default: true
+    },
+    showOnlineStatus: {
+      type: Boolean,
+      default: true
+    }
+  },
+
+  // Notification settings
+  notificationSettings: {
+    reactions: {
+      type: Boolean,
+      default: true
+    },
+    comments: {
+      type: Boolean,
+      default: true
+    },
+    followers: {
+      type: Boolean,
+      default: true
+    },
+    messages: {
+      type: Boolean,
+      default: true
+    },
+    marketplace: {
+      type: Boolean,
+      default: true
+    },
+    jobs: {
+      type: Boolean,
+      default: true
+    }
+  },
+
+  // Appearance settings
+  appearance: {
+    type: String,
+    enum: ['light', 'dark', 'system'],
+    default: 'system'
+  },
+
+  // Old privacy settings (deprecated)
+  /*
+  profileVisibility: {
+    type: String,
+    enum: ['public', 'followers_only'],
+    default: 'public'
+  },
+  showFarmSize: {
+    type: Boolean,
+    default: true
+  },
+  showPhone: {
+    type: Boolean,
+    default: true
+  },
+  messagePermission: {
+    type: String,
+    enum: ['everyone', 'followers_only'],
+    default: 'everyone'
+  },
+  */
+
   twoFactorAuth: {
     type: Boolean,
     default: false
-  },
-  showOnlineStatus: {
-    type: Boolean,
-    default: true
   },
   allowFollowRequests: {
     type: Boolean,
     default: true
   },
-  
+
   // Notification settings
   notificationSettings: {
     push: {
@@ -128,16 +278,16 @@ const UserSchema = new mongoose.Schema({
     inApp: { type: Boolean, default: true },
     sound: { type: Boolean, default: true }
   },
-  
+
   // Marketplace settings
   marketplaceSettings: {
     defaultVisibility: { type: String, enum: ['public', 'private'], default: 'public' },
     defaultCategory: { type: String, default: 'crops' },
     priceUnit: { type: String, enum: ['KES', 'USD'], default: 'KES' },
     autoRefresh: { type: Boolean, default: true },
-    sortPreference: { type: String, enum: ['freshness', 'relevance', 'price'], default: 'freshness' }
+    sortPreference: { type: String, enum: ['freshness', 'engagement', 'relevance'], default: 'freshness' }
   },
-  
+
   // Feed settings
   feedSettings: {
     showSuggestedPosts: { type: Boolean, default: true },
@@ -145,7 +295,7 @@ const UserSchema = new mongoose.Schema({
     followSuggestions: { type: Boolean, default: true },
     showOnlineStatus: { type: Boolean, default: true }
   },
-  
+
   // Community settings
   communitySettings: {
     showOnlineStatus: { type: Boolean, default: true },
@@ -153,52 +303,14 @@ const UserSchema = new mongoose.Schema({
     groupChatNotifications: { type: Boolean, default: true },
     autoAcceptInvites: { type: Boolean, default: false }
   },
-  
+
   // App settings
   appSettings: {
     theme: { type: String, enum: ['light', 'dark', 'green'], default: 'light' },
     language: { type: String, default: 'en' },
     measurementUnits: { type: String, enum: ['metric', 'imperial'], default: 'metric' },
     defaultLanding: { type: String, enum: ['dashboard', 'feed', 'marketplace'], default: 'dashboard' }
-  },
-  
-  // Profile management fields
-  skills: [{
-    name: { type: String, required: true },
-    level: { 
-      type: String, 
-      enum: ['Beginner', 'Intermediate', 'Professional', 'Expert'], 
-      default: 'Beginner' 
-    }
-  }],
-  certifications: [{
-    name: { type: String, required: true },
-    issuer: { type: String, required: true },
-    date: { type: String, required: true },
-    fileUrl: { type: String }
-  }],
-  services: [{
-    name: { type: String, required: true },
-    description: { type: String, required: true },
-    price: { type: String, required: true }
-  }],
-  crops: [String],
-  livestock: [String],
-  farmSize: { type: String },
-  yearsExperience: { type: Number, default: 0 },
-  experienceLevel: { 
-    type: String, 
-    enum: ['Beginner', 'Intermediate', 'Professional', 'Expert'], 
-    default: 'Beginner' 
-  },
-  availabilityStatus: { 
-    type: String, 
-    enum: ['Open to Work', 'Open to Internships', 'Hiring', 'Not Available'], 
-    default: 'Not Available' 
-  },
-  farmImages: [String],
-  rating: { type: Number, default: 0 },
-  totalReviews: { type: Number, default: 0 }
+  }
 });
 
 module.exports = mongoose.model('User', UserSchema);

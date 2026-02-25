@@ -80,263 +80,6 @@ const categories: Record<string, { name: string; icon: React.ElementType }> = {
   seedlings: { name: 'Seedlings & Plants', icon: Leaf },
 };
 
-// Mock data - same as marketplace page
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Fresh Organic Maize',
-    description: 'High-quality organic maize, freshly harvested from our farm. Perfect for both human consumption and animal feed. Our maize is grown using sustainable farming practices without chemical pesticides or fertilizers. Each bag contains approximately 90kg of dried maize. We offer bulk discounts for orders above 20 bags. Delivery available within Nakuru County at an additional cost.',
-    category: 'produce',
-    subcategory: 'grains',
-    price: 3500,
-    currency: 'KES',
-    quantity: 50,
-    unit: 'bags',
-    condition: 'fresh',
-    images: [
-      'https://images.unsplash.com/photo-1595280151135-7ae8f7d55681?w=800',
-      'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=800',
-      'https://images.unsplash.com/photo-1601292024720-14c892bae385?w=800'
-    ],
-    location: { county: 'Nakuru', town: 'Njoro', coordinates: { lat: -0.3031, lng: 35.9341 } },
-    seller: { 
-      id: 's1', 
-      name: 'Green Valley Farm', 
-      type: 'farmer', 
-      verified: true, 
-      rating: 4.8,
-      memberSince: '2023-01-15',
-      totalListings: 12,
-      phone: '+254712345678'
-    },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    views: 45
-  },
-  {
-    id: '2',
-    name: 'Dairy Cows - Friesian',
-    description: 'Healthy Friesian dairy cows, high milk producers averaging 25-30 liters per day. All cows are vaccinated against common diseases and regularly dewormed. They are well-adapted to the local climate and come with complete health records. We provide after-sale support and guidance on dairy management.',
-    category: 'livestock',
-    subcategory: 'cattle',
-    price: 85000,
-    currency: 'KES',
-    quantity: 5,
-    unit: 'animals',
-    condition: 'live',
-    breed: 'Friesian',
-    age: '3 years',
-    healthStatus: 'Excellent - Fully vaccinated, TB and Brucellosis free',
-    images: [
-      'https://images.unsplash.com/photo-1596733430284-f7437764b1a9?w=800',
-      'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=800'
-    ],
-    location: { county: 'Kiambu', town: 'Thika', coordinates: { lat: -1.0333, lng: 37.0667 } },
-    seller: { 
-      id: 's2', 
-      name: 'Wanjiru Dairy Farm', 
-      type: 'farmer', 
-      verified: true, 
-      rating: 4.9,
-      memberSince: '2022-06-20',
-      totalListings: 8,
-      phone: '+254723456789'
-    },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    views: 128
-  },
-  {
-    id: '3',
-    name: 'NPK Fertilizer 23:23:0',
-    description: 'High-quality NPK fertilizer with balanced nutrients (23% Nitrogen, 23% Phosphorus, 0% Potassium). Ideal for top dressing cereals, vegetables, and cash crops. Manufactured to Kenyan agricultural standards. Available in 50kg bags. Bulk orders available with discount.',
-    category: 'agrovet',
-    subcategory: 'fertilizer',
-    price: 2800,
-    currency: 'KES',
-    quantity: 100,
-    unit: 'bags',
-    condition: 'new',
-    images: [
-      'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800'
-    ],
-    location: { county: 'Nairobi', town: 'Industrial Area' },
-    seller: { 
-      id: 's3', 
-      name: 'AgroSupplies Ltd', 
-      type: 'agrovet', 
-      verified: true, 
-      rating: 4.5,
-      memberSince: '2021-03-10',
-      totalListings: 45,
-      phone: '+254734567890'
-    },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    views: 89
-  },
-  {
-    id: '4',
-    name: 'Massey Ferguson Tractor 135',
-    description: 'Well-maintained Massey Ferguson 135 tractor in excellent working condition. Recently serviced with new engine oil, filters, and hydraulic system check. Comes with plow and harrow attachments. Perfect for small to medium-scale farming operations.',
-    category: 'equipment',
-    subcategory: 'tractor',
-    price: 450000,
-    currency: 'KES',
-    quantity: 1,
-    unit: 'piece',
-    condition: 'used',
-    year: 1998,
-    brand: 'Massey Ferguson',
-    images: [
-      'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?w=800',
-      'https://images.unsplash.com/photo-1625244695850-92834c8c2a26?w=800'
-    ],
-    location: { county: 'Uasin Gishu', town: 'Eldoret' },
-    seller: { 
-      id: 's4', 
-      name: 'FarmEquip Solutions', 
-      type: 'equipment_seller', 
-      verified: false, 
-      rating: 4.2,
-      memberSince: '2023-08-15',
-      totalListings: 6,
-      phone: '+254745678901'
-    },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    views: 234
-  },
-  {
-    id: '5',
-    name: 'Hass Avocado Seedlings',
-    description: 'Grafted Hass avocado seedlings, 6 months old and ready for transplanting. High-yielding variety that produces premium quality avocados for export and local markets. Grown in certified nursery with proper rootstock selection.',
-    category: 'seedlings',
-    subcategory: 'avocado',
-    price: 150,
-    currency: 'KES',
-    quantity: 500,
-    unit: 'seedlings',
-    condition: 'fresh',
-    images: [
-      'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=800',
-      'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=800'
-    ],
-    location: { county: 'Murang\'a', town: 'Maragua' },
-    seller: { 
-      id: 's5', 
-      name: 'Hass Nursery', 
-      type: 'farmer', 
-      verified: true, 
-      rating: 4.7,
-      memberSince: '2022-11-05',
-      totalListings: 15,
-      phone: '+254756789012'
-    },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-    views: 67
-  },
-  {
-    id: '6',
-    name: 'Fresh Tomatoes - Grade A',
-    description: 'Premium grade A tomatoes, organically grown without chemical pesticides. Perfect for market resale, processing, or direct consumption. Harvested daily to ensure maximum freshness. Available in crates of 20kg or bulk orders.',
-    category: 'produce',
-    subcategory: 'vegetables',
-    price: 80,
-    currency: 'KES',
-    quantity: 200,
-    unit: 'kg',
-    condition: 'fresh',
-    images: [
-      'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800'
-    ],
-    location: { county: 'Kajiado', town: 'Kiserian' },
-    seller: { 
-      id: 's6', 
-      name: 'Kajiado Fresh Produce', 
-      type: 'farmer', 
-      verified: false, 
-      rating: 4.3,
-      memberSince: '2023-05-20',
-      totalListings: 23,
-      phone: '+254767890123'
-    },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    views: 156
-  },
-  {
-    id: '7',
-    name: 'Goats - Indigenous Breed',
-    description: 'Healthy indigenous goats raised on natural pasture. Excellent for meat production and breeding. All goats are dewormed and vaccinated. Various ages available from 8 months to 2 years.',
-    category: 'livestock',
-    subcategory: 'goats',
-    price: 6500,
-    currency: 'KES',
-    quantity: 15,
-    unit: 'animals',
-    condition: 'live',
-    breed: 'Indigenous (East African)',
-    age: '1-2 years',
-    healthStatus: 'Good health, dewormed',
-    images: [
-      'https://images.unsplash.com/photo-1560814304-4f05b62af116?w=800'
-    ],
-    location: { county: 'Kajiado', town: 'Isinya' },
-    seller: { 
-      id: 's7', 
-      name: 'Maasai Livestock', 
-      type: 'farmer', 
-      verified: true, 
-      rating: 4.6,
-      memberSince: '2021-09-12',
-      totalListings: 34,
-      phone: '+254778901234'
-    },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
-    views: 92
-  },
-  {
-    id: '8',
-    name: 'Poultry Feed - Layers Mash',
-    description: 'High-quality layers mash formulated for optimal egg production. Contains all essential nutrients, vitamins, and minerals. Suitable for commercial and backyard poultry farming. 70kg bags.',
-    category: 'agrovet',
-    subcategory: 'feed',
-    price: 3200,
-    currency: 'KES',
-    quantity: 50,
-    unit: 'bags',
-    condition: 'new',
-    images: [
-      'https://images.unsplash.com/photo-1589469884538-4c2b46d7e4cc?w=800'
-    ],
-    location: { county: 'Nakuru', town: 'Nakuru Town' },
-    seller: { 
-      id: 's8', 
-      name: 'Poultry Masters', 
-      type: 'supplier', 
-      verified: true, 
-      rating: 4.4,
-      memberSince: '2022-04-18',
-      totalListings: 28,
-      phone: '+254789012345'
-    },
-    isAvailable: true,
-    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    views: 78
-  }
-];
-
 // Helper functions
 const getTimeAgo = (dateString: string): string => {
   const date = new Date(dateString);
@@ -398,17 +141,25 @@ export default function ProductDetailPage() {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 600));
+        setError(null);
         
-        const foundProduct = mockProducts.find(p => p.id === productId);
-        if (foundProduct) {
-          setProduct(foundProduct);
-        } else {
-          setError('Product not found');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${productId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to fetch product');
         }
+        
+        const data = await response.json();
+        setProduct(data);
       } catch (err) {
-        setError('Failed to load product details');
+        console.error('Error fetching product:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load product details');
       } finally {
         setLoading(false);
       }
