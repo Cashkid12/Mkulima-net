@@ -18,7 +18,8 @@ import {
   HeartOff,
   ExternalLink,
   AlertCircle,
-  Loader2
+  Loader2,
+  DollarSign
 } from 'lucide-react';
 
 interface User {

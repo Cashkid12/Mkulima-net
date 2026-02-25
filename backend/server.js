@@ -23,6 +23,10 @@ const feedRoutes = require('./routes/feed');
 const followRoutes = require('./routes/follow');
 const messageRoutes = require('./routes/messages');
 
+// Import models at the top to avoid dynamic imports in socket events
+const { Conversation } = require('./models/Conversation');
+const { Message, User } = require('./models');
+
 const app = express();
 
 // Connect to MongoDB
@@ -87,7 +91,6 @@ io.on('connection', (socket) => {
       io.to(data.conversationId).emit('receive_message', data);
       
       // Update unread counts for other participants
-      const { Conversation } = require('./models/Conversation');
       const conversation = await Conversation.findById(data.conversationId);
       
       if (conversation) {
@@ -184,7 +187,6 @@ io.on('connection', (socket) => {
       const { postId, authorId } = data;
       
       // Get author's followers
-      const User = require('./models/User');
       const author = await User.findById(authorId).select('followers');
       
       if (author && author.followers) {
