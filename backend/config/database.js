@@ -10,9 +10,14 @@ const connectDB = async () => {
     console.log(`Attempting to connect to MongoDB: ${mongoUri}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     
-    // For production, use default options (no deprecated options)
+    // For production, use connection options to handle intermittent connection issues
     // For development, you might want to add options for better debugging
-    const conn = await mongoose.connect(mongoUri);
+    const conn = await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 60000, // Keep trying to send operations for 60 seconds
+      socketTimeoutMS: 45000,        // Close sockets after 45 seconds of inactivity
+      maxPoolSize: 10,              // Maintain up to 10 socket connections
+      family: 4                    // Use IPv4 only
+    });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     
