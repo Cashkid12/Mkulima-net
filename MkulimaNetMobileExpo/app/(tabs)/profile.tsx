@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Image, TouchableOpacity, ScrollView, FlatList, RefreshControl } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 interface Skill {
   id: number;
@@ -66,6 +67,7 @@ interface Job {
 }
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { authState } = useAuth();
   const [activeTab, setActiveTab] = useState<'posts' | 'products' | 'reviews'>('posts');
   const [userData, setUserData] = useState<any>({});
@@ -519,6 +521,66 @@ export default function ProfileScreen() {
 
       {/* Tab Content */}
       {renderTabContent()}
+      
+      {/* Additional Features Navigation */}
+      <View style={styles.additionalFeaturesSection}>
+        <Text style={styles.additionalSectionTitle}>Additional Features</Text>
+        
+        <TouchableOpacity style={styles.featureButton} onPress={() => router.push('/dashboard')}>
+          <View style={styles.featureIconContainer}>
+            <MaterialIcons name="dashboard" size={24} color="#1B5E20" />
+          </View>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureTitle}>Dashboard</Text>
+            <Text style={styles.featureSubtitle}>View your analytics and stats</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color="#666666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.featureButton} onPress={() => router.push('/wallet')}>
+          <View style={styles.featureIconContainer}>
+            <MaterialIcons name="account-balance-wallet" size={24} color="#1B5E20" />
+          </View>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureTitle}>Wallet</Text>
+            <Text style={styles.featureSubtitle}>Manage your funds and transactions</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color="#666666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.featureButton} onPress={() => router.push('/security')}>
+          <View style={styles.featureIconContainer}>
+            <MaterialIcons name="lock" size={24} color="#1B5E20" />
+          </View>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureTitle}>Security Center</Text>
+            <Text style={styles.featureSubtitle}>Manage account security settings</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color="#666666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.featureButton} onPress={() => router.push('/verification')}>
+          <View style={styles.featureIconContainer}>
+            <MaterialIcons name="verified-user" size={24} color="#1B5E20" />
+          </View>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureTitle}>Verification</Text>
+            <Text style={styles.featureSubtitle}>Get verified badges and certificates</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color="#666666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.featureButton} onPress={() => router.push('/bulk-buyer')}>
+          <View style={styles.featureIconContainer}>
+            <MaterialIcons name="shopping-cart" size={24} color="#1B5E20" />
+          </View>
+          <View style={styles.featureInfo}>
+            <Text style={styles.featureTitle}>Bulk Buyer</Text>
+            <Text style={styles.featureSubtitle}>Access bulk purchasing opportunities</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color="#666666" />
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
@@ -972,5 +1034,52 @@ const styles = StyleSheet.create({
   reviewTimestamp: {
     fontSize: 12,
     color: '#999999',
+  },
+  
+  /* Additional Features Styles */
+  additionalFeaturesSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 12,
+    padding: 0,
+  },
+  featureButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  featureIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  featureInfo: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  featureSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 2,
+  },
+  additionalSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
   },
 });
