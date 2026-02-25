@@ -25,7 +25,8 @@ const messageRoutes = require('./routes/messages');
 
 // Import models at the top to avoid dynamic imports in socket events
 const { Conversation } = require('./models/Conversation');
-const { Message, User } = require('./models');
+const Message = require('./models/Message');
+const User = require('./models/User');
 
 const app = express();
 
@@ -133,8 +134,6 @@ io.on('connection', (socket) => {
   // Mark messages as read
   socket.on('mark_as_read', async (data) => {
     try {
-      const { Message, Conversation } = require('./models');
-      
       // Update read status in the message
       await Message.updateMany(
         { conversationId: data.conversationId, 'readStatus.read': { $ne: true } },
