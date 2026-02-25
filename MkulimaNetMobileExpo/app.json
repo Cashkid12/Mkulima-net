@@ -43,7 +43,25 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "MkulimaNet - Agricultural Network",
+      "shortName": "MkulimaNet",
+      "description": "Connect with farmers, find jobs, buy/sell agricultural products",
+      "themeColor": "#1B5E20",
+      "backgroundColor": "#FFFFFF",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "preferRelatedApplications": false,
+      "icon": {
+        "src": "./assets/images/icon.png",
+        "sizes": [48, 72, 96, 128, 144, 152, 192, 384, 512]
+      },
+      "splash": {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1B5E20"
+      }
     },
     "extra": {
       "eas": {
