@@ -1,23 +1,43 @@
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { Tabs } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
 // Define the props type for TabBarIcon
 type TabBarIconProps = {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: string;
   color: string;
   size?: number;
 };
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon({ name, color, size = 28 }: TabBarIconProps) {
-  return <FontAwesome size={size} style={{ marginBottom: -3 }} name={name} color={color} />;
+// Custom TabBar Icon Component with proper sizing
+function TabBarIcon({ name, color, size = 24 }: TabBarIconProps) {
+  return <MaterialIcons name={name as any} size={size} color={color} />;
 }
+
+// Custom Tab Label Component
+function TabLabel({ title, isActive }: { title: string; isActive: boolean }) {
+  return (
+    <Text style={[styles.tabLabel, isActive && styles.activeTabLabel]}>
+      {title}
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  activeTabLabel: {
+    fontWeight: '600',
+    color: '#1B5E20',
+  },
+});
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -29,11 +49,16 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#666666',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#F5F5F5',
+          borderTopWidth: 0.5,
+          borderTopColor: '#E5E7EB',
           height: 70,
           paddingBottom: 10,
-          paddingTop: 10,
+          paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -41,41 +66,41 @@ export default function TabLayout() {
         },
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="feed"
         options={{
           title: 'Feed',
-          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="rss" color={color} />,
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="forum" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="jobs"
         options={{
           title: 'Jobs',
-          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="briefcase" color={color} />,
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="work" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="create"
         options={{
           title: '+',
-          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="plus-circle" size={30} color={color} />,
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="add-circle" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
           title: 'Messages',
-          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="envelope" color={color} />,
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="chat" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="user" color={color} />,
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="person" color={color} size={24} />,
         }}
       />
     </Tabs>
