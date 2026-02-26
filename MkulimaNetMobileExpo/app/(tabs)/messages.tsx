@@ -1,125 +1,103 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList, Text, TouchableOpacity, Image, RefreshControl, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Image, SafeAreaView, TextInput } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRouter } from 'expo-router';
-
-interface Conversation {
-  _id: string;
-  participants: {
-    _id: string;
-    username: string;
-    firstName?: string;
-    lastName?: string;
-    profilePicture?: string;
-    isOnline?: boolean;
-  }[];
-  lastMessage: {
-    text: string;
-    createdAt: string;
-    sender: string;
-  };
-  unreadCount: number;
-  updatedAt: string;
-}
 
 export default function MessagesScreen() {
   const { authState } = useAuth();
-  const router = useRouter();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
-  const loadConversations = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api'}/messages/conversations`, {
-        headers: {
-          'Authorization': `Bearer ${authState.token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setConversations(data.conversations || []);
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to load conversations');
-      }
-    } catch (error: any) {
-      console.error('Error loading conversations:', error);
-      Alert.alert('Error', error.message || 'Failed to load conversations');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  const [conversations, setConversations] = useState([
+    {
+      id: 1,
+      name: 'John Kariuki',
+      avatar: 'https://via.placeholder.com/40x40',
+      lastMessage: 'Hi, are you interested in my maize?',
+      time: '2m ago',
+      unread: 2,
+      isOnline: true
+    },
+    {
+      id: 2,
+      name: 'Mary Wanjiru',
+      avatar: 'https://via.placeholder.com/40x40',
+      lastMessage: 'Thanks for the advice on pest control',
+      time: '1h ago',
+      unread: 0,
+      isOnline: false
+    },
+    {
+      id: 3,
+      name: 'Agrovet Supplies',
+      avatar: 'https://via.placeholder.com/40x40',
+      lastMessage: 'Your fertilizer order is ready',
+      time: '3h ago',
+      unread: 1,
+      isOnline: true
+    },
+    {
+      id: 4,
+      name: 'Farm Equipment Co.',
+      avatar: 'https://via.placeholder.com/40x40',
+      lastMessage: 'We have the tractor you wanted',
+      time: '1d ago',
+      unread: 0,
+      isOnline: false
     }
-  };
+  ]);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadConversations();
-  };
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const getOtherParticipant = (participants: any[]) => {
-    return participants.find(p => p._id !== authState.user._id) || participants[0];
-  };
+  const filteredConversations = conversations.filter(conv => 
+    conv.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const renderConversation = ({ item }: { item: Conversation }) => {
-    const otherParticipant = getOtherParticipant(item.participants);
-    const isUnread = item.unreadCount > 0;
-    
-    return (
-      <TouchableOpacity 
-        style={styles.conversationItem}
-        onPress={() => Alert.alert('Chat', `Opening chat with ${otherParticipant.firstName || otherParticipant.username}`)}
-      >
-        <View style={styles.avatarContainer}>
-          <Image source={{ uri: otherParticipant.profilePicture || 'https://via.placeholder.com/50x50' }} style={styles.avatar} />
-          {otherParticipant.isOnline && <View style={styles.onlineIndicator} />}
+  const renderConversation = ({ item }: { item: any }) => (
+    <TouchableOpacity style={styles.conversationCard}>
+      <View style={styles.avatarContainer}>
+        <Image source={{ uri: item.avatar }} style={styles.avatar} />
+        {item.isOnline && <View style={styles.onlineIndicator} />}
+      </View>
+      <View style={styles.conversationInfo}>
+        <View style={styles.conversationHeader}>
+          <Text style={styles.conversationName}>{item.name}</Text>
+          <Text style={styles.conversationTime}>{item.time}</Text>
         </View>
-        
-        <View style={styles.conversationInfo}>
-          <View style={styles.userInfoRow}>
-            <Text style={styles.partnerName} numberOfLines={1}>
-              {otherParticipant.firstName || otherParticipant.username}
-            </Text>
-            {isUnread && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadText}>{item.unreadCount}</Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage.text}
-          </Text>
+        <Text style={styles.lastMessage} numberOfLines={1}>{item.lastMessage}</Text>
+      </View>
+      {item.unread > 0 && (
+        <View style={styles.unreadBadge}>
+          <Text style={styles.unreadText}>{item.unread}</Text>
         </View>
-        
-        <Text style={styles.timestamp}>
-          {new Date(item.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+      )}
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
+    <SafeAreaView style={styles.container}>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <MaterialIcons name="search" size={20} color="#666666" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search conversations..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
 
+      {/* Conversations List */}
       <FlatList
-        data={conversations}
+        data={filteredConversations}
         renderItem={renderConversation}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        keyExtractor={item => item.id.toString()}
+        contentContainerStyle={styles.conversationsList}
+        showsVerticalScrollIndicator={false}
       />
-    </View>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity style={styles.newMessageButton}>
+        <MaterialIcons name="edit" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
@@ -128,56 +106,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
-    backgroundColor: '#FFFFFF',
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    margin: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333333',
+  },
+  conversationsList: {
     paddingHorizontal: 16,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    paddingBottom: 80, // Extra padding for floating button
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111111',
-  },
-  listContent: {
-    padding: 16,
-  },
-  conversationItem: {
+  conversationCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    marginBottom: 12,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 12,
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    marginRight: 12,
-  },
-  conversationInfo: {
-    flex: 1,
-  },
-  partnerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111111',
-    marginBottom: 4,
-  },
-  lastMessage: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  timestamp: {
-    fontSize: 12,
-    color: '#999999',
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 12,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -185,26 +149,61 @@ const styles = StyleSheet.create({
     right: 0,
     width: 12,
     height: 12,
+    backgroundColor: '#10B981',
     borderRadius: 6,
-    backgroundColor: '#4CAF50',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  userInfoRow: {
+  conversationInfo: {
+    flex: 1,
+  },
+  conversationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
+  conversationName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111111',
+  },
+  conversationTime: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  lastMessage: {
+    fontSize: 14,
+    color: '#666666',
+  },
   unreadBadge: {
     backgroundColor: '#1B5E20',
+    minWidth: 20,
+    height: 20,
     borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
   unreadText: {
+    fontSize: 12,
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  newMessageButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#1B5E20',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

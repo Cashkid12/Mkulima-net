@@ -3,9 +3,6 @@ import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-
 // Define the props type for TabBarIcon
 type TabBarIconProps = {
   name: string;
@@ -29,7 +26,7 @@ function TabLabel({ title, isActive }: { title: string; isActive: boolean }) {
 
 const styles = StyleSheet.create({
   tabLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
     marginTop: 4,
   },
@@ -40,13 +37,11 @@ const styles = StyleSheet.create({
 });
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#1B5E20', // Professional green color
-        tabBarInactiveTintColor: '#666666',
+        tabBarActiveTintColor: '#1B5E20',
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 0.5,
@@ -61,12 +56,11 @@ export default function TabLayout() {
           shadowRadius: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '500',
+          marginBottom: 0,
         },
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: false,
+        headerShown: false, // Clean header
       }}>
       <Tabs.Screen
         name="feed"
@@ -86,7 +80,28 @@ export default function TabLayout() {
         name="create"
         options={{
           title: '+',
-          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="add-circle" color={color} size={24} />,
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="add-circle" color={color} size={28} />,
+        }}
+      />
+      <Tabs.Screen
+        name="marketplace"
+        options={{
+          title: 'Market',
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="store" color={color} size={24} />,
+        }}
+      />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          title: 'Wallet',
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="account-balance-wallet" color={color} size={24} />,
+        }}
+      />
+      <Tabs.Screen
+        name="portfolio"
+        options={{
+          title: 'Portfolio',
+          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="bar-chart" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
@@ -94,13 +109,6 @@ export default function TabLayout() {
         options={{
           title: 'Messages',
           tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="chat" color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="person" color={color} size={24} />,
         }}
       />
     </Tabs>

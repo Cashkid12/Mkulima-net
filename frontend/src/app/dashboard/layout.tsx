@@ -3,7 +3,7 @@
 import { useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ShoppingBag, MessageSquare, Bell, User, Settings, Package, Briefcase, Mail, Users } from 'lucide-react';
+import { Home, ShoppingBag, MessageSquare, Bell, User, Settings, Package, Briefcase, Mail, Users, Wallet } from 'lucide-react';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import WeatherWidget from '@/components/weather/WeatherWidget';
 
@@ -30,6 +30,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // PROFESSIONAL OPPORTUNITIES GROUP
     { name: 'Jobs', href: '/dashboard/jobs', current: pathname === '/dashboard/jobs', icon: Briefcase },
     { name: 'Marketplace', href: '/marketplace', current: pathname.startsWith('/marketplace'), icon: ShoppingBag },
+    { name: 'Wallet', href: '/dashboard/wallet', current: pathname === '/dashboard/wallet', icon: Wallet },
     
     // COMMUNICATION GROUP
     { name: 'Messages', href: '/messages', current: pathname.startsWith('/messages'), icon: Mail },
@@ -42,25 +43,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 bg-white border-r border-gray-200 shadow-sm">
+      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:z-30">
+        <div className="flex-1 flex flex-col min-h-0 bg-white border-r border-gray-200 shadow-lg">
 
           
           {/* Navigation Groups */}
-          <div className="flex-1 flex flex-col overflow-y-auto py-6 px-3">
+          <div className="flex-1 flex flex-col overflow-y-auto py-6 px-4 space-y-8">
             {/* PERSONAL ANALYTICS GROUP */}
-            <div className="mb-6">
-              <div className="px-3 mb-2">
+            <div>
+              <div className="px-2 mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Personal Analytics</span>
               </div>
               <nav className="space-y-1">
@@ -86,8 +87,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             
             {/* SOCIAL FEED GROUP */}
-            <div className="mb-6">
-              <div className="px-3 mb-2">
+            <div>
+              <div className="px-2 mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Social Feed</span>
               </div>
               <nav className="space-y-1">
@@ -113,8 +114,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             
             {/* CONTENT MANAGEMENT GROUP */}
-            <div className="mb-6">
-              <div className="px-3 mb-2">
+            <div>
+              <div className="px-2 mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Content Management</span>
               </div>
               <nav className="space-y-1">
@@ -140,12 +141,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             
             {/* PROFESSIONAL OPPORTUNITIES GROUP */}
-            <div className="mb-6">
-              <div className="px-3 mb-2">
+            <div>
+              <div className="px-2 mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Opportunities</span>
               </div>
               <nav className="space-y-1">
-                {navigation.filter(item => ['Jobs', 'Marketplace'].includes(item.name)).map((item) => (
+                {navigation.filter(item => ['Jobs', 'Marketplace', 'Wallet'].includes(item.name)).map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
@@ -167,8 +168,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             
             {/* COMMUNICATION GROUP */}
-            <div className="mb-6">
-              <div className="px-3 mb-2">
+            <div>
+              <div className="px-2 mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Communication</span>
               </div>
               <nav className="space-y-1">
@@ -194,8 +195,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             
             {/* ACCOUNT GROUP */}
-            <div>
-              <div className="px-3 mb-2">
+            <div className="mt-auto">
+              <div className="px-2 mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Account</span>
               </div>
               <nav className="space-y-1">
@@ -226,12 +227,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Mobile sidebar */}
       <div className={`${sidebarOpen ? 'block' : 'hidden'} md:hidden fixed inset-0 z-40 flex`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
-        <div className="relative flex-1 flex flex-col w-full max-w-xs bg-white">
+        <div className="relative flex-1 flex flex-col w-full max-w-xs bg-white shadow-xl">
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
 
             
             {/* Navigation Groups - Mobile */}
-            <div className="mt-5 px-2">
+            <div className="mt-5 px-4 space-y-8">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -240,7 +241,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     item.current
                       ? 'bg-green-50 text-green-700 border-l-4 border-green-500'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  } group flex items-center px-3 py-3 text-base font-medium rounded-lg mb-1`}
+                  } group flex items-center px-3 py-3 text-base font-medium rounded-lg`}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon
@@ -257,9 +258,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="md:pl-64 flex flex-col flex-1">
+      <div className="flex-1 flex flex-col md:ml-64">
         {/* Desktop Header with Notifications and Weather */}
-        <div className="hidden md:flex sticky top-0 z-10 bg-white border-b border-gray-200 h-16 items-center justify-between px-6">
+        <header className="hidden md:flex sticky top-0 z-20 bg-white border-b border-gray-200 h-16 items-center justify-between px-6 shadow-sm">
           <div className="flex items-center">
             <WeatherWidget />
           </div>
@@ -276,37 +277,42 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </button>
             
             {notificationOpen && (
-              <NotificationDropdown onClose={() => setNotificationOpen(false)} />
+              <div className="absolute right-0 mt-2 w-80">
+                <NotificationDropdown onClose={() => setNotificationOpen(false)} />
+              </div>
             )}
           </div>
-        </div>
+        </header>
 
         {/* Mobile Header */}
-        <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-50 flex items-center justify-between">
-          <button
-            type="button"
-            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <span className="sr-only">Open sidebar</span>
-            <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <WeatherWidget />
-            
-            {/* Mobile Notification Bell */}
-            <Link
-              href="/notifications"
-              className="relative p-2 mr-2 text-gray-500 hover:text-gray-700"
+        <header className="sticky top-0 z-20 md:hidden bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
             >
-              <Bell className="h-6 w-6" />
-              <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-gray-50" />
-            </Link>
+              <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            <div className="flex items-center gap-3">
+              <WeatherWidget />
+              
+              {/* Mobile Notification Bell */}
+              <Link
+                href="/notifications"
+                className="relative p-2 text-gray-500 hover:text-gray-700"
+                aria-label="Notifications"
+              >
+                <Bell className="h-6 w-6" />
+                <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white" />
+              </Link>
+            </div>
           </div>
-        </div>
+        </header>
 
         <main className="flex-1">
           {children}

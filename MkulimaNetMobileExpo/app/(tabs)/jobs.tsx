@@ -1,197 +1,193 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import { FontAwesome } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-interface Job {
-  id: string;
-  title: string;
-  companyName: string;
-  location: {
-    county: string;
-    town?: string;
-  };
-  jobType: string;
-  category: string;
-  salary?: {
-    amount?: number;
-    currency?: string;
-    negotiable?: boolean;
-  };
-  requiredSkills: string[];
-  experienceRequired: string;
-  description: string;
-  deadline: string;
-  employerId: {
-    id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-    profilePicture?: string;
-    farmName?: string;
-    location?: string;
-    verified: boolean;
-  };
-  isActive: boolean;
-  createdAt: string;
-}
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, SafeAreaView, TextInput, RefreshControl } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function JobsScreen() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchJobs();
-  }, []);
-
-  const fetchJobs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api'}/jobs`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch jobs');
-      }
-
-      const data = await response.json();
-      setJobs(data.jobs || []);
-    } catch (err) {
-      console.error('Error fetching jobs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load jobs');
-      Alert.alert('Error', 'Failed to load jobs. Please try again.');
-    } finally {
-      setLoading(false);
+  const { authState } = useAuth();
+  const [jobs, setJobs] = useState([
+    {
+      id: 1,
+      title: 'Agricultural Extension Officer',
+      company: 'Ministry of Agriculture',
+      location: 'Nairobi, Kenya',
+      salary: 'KSh 80,000 - 120,000',
+      type: 'Full-time',
+      posted: '2 days ago',
+      description: 'Seeking experienced agricultural extension officers to assist farmers with modern farming techniques.',
+      requirements: ['Degree in Agriculture', '3+ years experience', 'Knowledge of local crops'],
+      isSaved: false
+    },
+    {
+      id: 2,
+      title: 'Farm Manager',
+      company: 'Green Valley Farms',
+      location: 'Naivasha, Kenya',
+      salary: 'KSh 100,000 - 150,000',
+      type: 'Full-time',
+      posted: '1 day ago',
+      description: 'Looking for a farm manager to oversee daily operations of our organic vegetable farm.',
+      requirements: ['Agriculture degree', 'Leadership experience', 'Organic farming knowledge'],
+      isSaved: true
+    },
+    {
+      id: 3,
+      title: 'Agronomist',
+      company: 'Kenya Seed Company',
+      location: 'Kitale, Kenya',
+      salary: 'KSh 70,000 - 100,000',
+      type: 'Contract',
+      posted: '3 days ago',
+      description: 'Hiring agronomists to advise on seed production and soil management.',
+      requirements: ['Agronomy specialization', 'Research experience', 'Field work capability'],
+      isSaved: false
     }
+  ]);
+  
+  const [categories] = useState(['All', 'Agriculture', 'Farm Management', 'Research', 'Agribusiness']);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const filteredJobs = jobs.filter(job => {
+    const matchesCategory = selectedCategory === 'All' || job.description.toLowerCase().includes(selectedCategory.toLowerCase());
+    const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          job.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const toggleSaveJob = (jobId: number) => {
+    setJobs(jobs.map(job => 
+      job.id === jobId ? { ...job, isSaved: !job.isSaved } : job
+    ));
   };
 
-  const handleApply = async (jobId: string) => {
-    // Check if user is logged in
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      Alert.alert('Error', 'You must be logged in to apply to jobs');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api'}/jobs/${jobId}/apply`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({})
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to apply to job');
-      }
-
-      Alert.alert('Success', 'Successfully applied to the job!');
-    } catch (err) {
-      console.error('Error applying to job:', err);
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to apply to job');
-    }
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
   };
 
-  const renderJob = ({ item }: { item: Job }) => (
+  const renderJob = ({ item }: { item: any }) => (
     <View style={styles.jobCard}>
       <View style={styles.jobHeader}>
-        <View style={styles.jobTitleContainer}>
+        <View style={styles.jobInfo}>
           <Text style={styles.jobTitle}>{item.title}</Text>
-          <Text style={styles.jobCompany}>{item.companyName}</Text>
+          <Text style={styles.companyName}>{item.company}</Text>
+          <Text style={styles.jobLocation}>{item.location}</Text>
         </View>
-        <View style={styles.jobTypeBadge}>
-          <Text style={styles.jobTypeText}>{item.jobType}</Text>
-        </View>
+        <TouchableOpacity onPress={() => toggleSaveJob(item.id)}>
+          <MaterialIcons 
+            name={item.isSaved ? "bookmark" : "bookmark-border"} 
+            size={24} 
+            color={item.isSaved ? "#1B5E20" : "#666666"} 
+          />
+        </TouchableOpacity>
       </View>
       
       <View style={styles.jobDetails}>
         <View style={styles.detailRow}>
-          <FontAwesome name="map-marker" size={16} color="#666666" />
-          <Text style={styles.jobDetail}>
-            {item.location.county}
-            {item.location.town && `, ${item.location.town}`}
-          </Text>
+          <MaterialIcons name="attach-money" size={16} color="#666666" />
+          <Text style={styles.salary}>{item.salary}</Text>
         </View>
-        {item.salary?.amount && (
-          <View style={styles.detailRow}>
-            <FontAwesome name="money" size={16} color="#666666" />
-            <Text style={styles.jobDetail}>
-              {item.salary.currency} {item.salary.amount.toLocaleString()}{item.salary.negotiable ? ' (Neg)' : ''}
-            </Text>
-          </View>
-        )}
         <View style={styles.detailRow}>
-          <FontAwesome name="briefcase" size={16} color="#666666" />
-          <Text style={styles.jobDetail}>{item.experienceRequired || 'Any'} exp</Text>
+          <MaterialIcons name="work" size={16} color="#666666" />
+          <Text style={styles.jobType}>{item.type}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <MaterialIcons name="access-time" size={16} color="#666666" />
+          <Text style={styles.posted}>{item.posted}</Text>
         </View>
       </View>
       
       <Text style={styles.jobDescription}>{item.description}</Text>
       
-      <View style={styles.jobFooter}>
-        <Text style={styles.postedTime}>
-          Posted {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
-        <TouchableOpacity 
-          style={styles.applyButton}
-          onPress={() => handleApply(item.id)}
-        >
-          <Text style={styles.applyButtonText}>Apply</Text>
+      <View style={styles.requirementsSection}>
+        <Text style={styles.requirementsTitle}>Requirements:</Text>
+        <View style={styles.requirementsList}>
+          {item.requirements.map((req: string, index: number) => (
+            <View key={index} style={styles.requirementItem}>
+              <MaterialIcons name="check" size={12} color="#10B981" />
+              <Text style={styles.requirementText}>{req}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+      
+      <View style={styles.jobActions}>
+        <TouchableOpacity style={styles.applyButton}>
+          <Text style={styles.applyButtonText}>Apply Now</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.viewButton}>
+          <Text style={styles.viewButtonText}>View Details</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1B5E20" />
-        <Text style={styles.loadingText}>Loading jobs...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <FontAwesome name="exclamation-circle" size={48} color="#FF5252" />
-        <Text style={styles.errorTitle}>Error Loading Jobs</Text>
-        <Text style={styles.errorMessage}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchJobs}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Jobs</Text>
-        <Text style={styles.headerSubtitle}>Find agricultural opportunities</Text>
+    <SafeAreaView style={styles.container}>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <MaterialIcons name="search" size={20} color="#666666" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search jobs..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
-      
+
+      {/* Categories */}
+      <View style={styles.categoriesContainer}>
+        <FlatList
+          horizontal
+          data={categories}
+          renderItem={({ item }) => (
+            <TouchableOpacity 
+              style={[
+                styles.categoryButton, 
+                selectedCategory === item && styles.selectedCategoryButton
+              ]}
+              onPress={() => setSelectedCategory(item)}
+            >
+              <Text 
+                style={[
+                  styles.categoryText, 
+                  selectedCategory === item && styles.selectedCategoryText
+                ]}
+              >
+                {item}
+              </Text>
+            </TouchableOpacity>
+          )}
+          keyExtractor={item => item}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesList}
+        />
+      </View>
+
+      {/* Jobs List */}
       <FlatList
-        data={jobs}
+        data={filteredJobs}
         renderItem={renderJob}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.jobsList}
         showsVerticalScrollIndicator={false}
-        refreshing={loading}
-        onRefresh={fetchJobs}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <MaterialIcons name="sentiment-dissatisfied" size={48} color="#CCCCCC" />
+            <Text style={styles.emptyStateText}>No jobs found</Text>
+            <Text style={styles.emptyStateSubtext}>Try changing your search or category</Text>
+          </View>
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -200,68 +196,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  searchContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    margin: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666666',
+  searchIcon: {
+    marginRight: 8,
   },
-  errorContainer: {
+  searchInput: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#FFFFFF',
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF5252',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  errorMessage: {
     fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 24,
+    color: '#333333',
   },
-  retryButton: {
+  categoriesContainer: {
+    marginBottom: 16,
+  },
+  categoriesList: {
+    paddingHorizontal: 16,
+  },
+  categoryButton: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  selectedCategoryButton: {
     backgroundColor: '#1B5E20',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
   },
-  retryButtonText: {
+  categoryText: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  selectedCategoryText: {
     color: '#FFFFFF',
-    fontSize: 16,
     fontWeight: '600',
   },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111111',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 4,
-  },
   jobsList: {
-    padding: 16,
+    paddingHorizontal: 16,
     paddingBottom: 20,
   },
   jobCard: {
@@ -281,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  jobTitleContainer: {
+  jobInfo: {
     flex: 1,
   },
   jobTitle: {
@@ -290,61 +267,116 @@ const styles = StyleSheet.create({
     color: '#111111',
     marginBottom: 4,
   },
-  jobCompany: {
+  companyName: {
     fontSize: 14,
-    color: '#666666',
-  },
-  jobTypeBadge: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  jobTypeText: {
-    fontSize: 12,
     color: '#1B5E20',
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  jobLocation: {
+    fontSize: 12,
+    color: '#666666',
   },
   jobDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  jobDetail: {
-    fontSize: 14,
+  salary: {
+    fontSize: 12,
+    color: '#1B5E20',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  jobType: {
+    fontSize: 12,
     color: '#666666',
-    marginLeft: 8,
+    marginLeft: 4,
+  },
+  posted: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 4,
   },
   jobDescription: {
     fontSize: 14,
-    color: '#111111',
-    lineHeight: 18,
-    marginBottom: 16,
+    color: '#333333',
+    lineHeight: 20,
+    marginBottom: 12,
   },
-  jobFooter: {
+  requirementsSection: {
+    marginBottom: 12,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111111',
+    marginBottom: 8,
+  },
+  requirementsList: {
+    marginBottom: 12,
+  },
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  requirementText: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 4,
+  },
+  jobActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  postedTime: {
-    fontSize: 12,
-    color: '#999999',
   },
   applyButton: {
+    flex: 0.48,
     backgroundColor: '#1B5E20',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
   },
   applyButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  viewButton: {
+    flex: 0.48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1B5E20',
+  },
+  viewButtonText: {
+    color: '#1B5E20',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 64,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666666',
+    marginTop: 16,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#999999',
+    marginTop: 8,
   },
 });

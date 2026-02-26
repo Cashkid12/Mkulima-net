@@ -12,15 +12,18 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="dashboard" options={{ title: 'Dashboard' }} />
           <Stack.Screen name="wallet" options={{ title: 'Wallet' }} />
+          <Stack.Screen name="portfolio" options={{ title: 'Portfolio' }} />
+          <Stack.Screen name="marketplace" options={{ title: 'Marketplace' }} />
+          <Stack.Screen name="product-detail" options={{ title: 'Product Detail' }} />
+          <Stack.Screen name="create-marketplace-listing" options={{ title: 'Create Listing' }} />
           <Stack.Screen name="security" options={{ title: 'Security' }} />
           <Stack.Screen name="verification" options={{ title: 'Verification' }} />
           <Stack.Screen name="bulk-buyer" options={{ title: 'Bulk Buyer' }} />
+          <Stack.Screen name="profile" options={{ title: 'Profile' }} />
 
           <Stack.Screen name="create-post" options={{ title: 'Create Post' }} />
           <Stack.Screen name="post-job" options={{ title: 'Post Job' }} />
-          <Stack.Screen name="create-marketplace-listing" options={{ title: 'Create Listing' }} />
           <Stack.Screen name="job-details" options={{ title: 'Job Details' }} />
-          <Stack.Screen name="product-detail" options={{ title: 'Product Detail' }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
           <Stack.Screen name="login" options={{ title: 'Login' }} />
           <Stack.Screen name="register" options={{ title: 'Register' }} />

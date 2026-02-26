@@ -1,78 +1,96 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ThemedView } from '@/components/Themed';
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function CreateScreen() {
   const router = useRouter();
 
-  const handleCreatePost = () => {
-    router.push('/create-post');
-  };
+  const actions = [
+    { id: 'post', title: 'Create Post', icon: 'chat', color: '#1B5E20' },
+    { id: 'job', title: 'Post Job', icon: 'work', color: '#3B82F6' },
+    { id: 'product', title: 'Add Product', icon: 'store', color: '#F59E0B' },
+    { id: 'community', title: 'Community', icon: 'groups', color: '#8B5CF6' },
+  ];
 
-  const handleCreateMarketplaceListing = () => {
-    router.push('/create-marketplace-listing');
-  };
-
-  const handlePostJob = () => {
-    router.push('/post-job');
+  const handleAction = (actionId: string) => {
+    switch(actionId) {
+      case 'post':
+        router.push('/create-post');
+        break;
+      case 'job':
+        router.push('/post-job');
+        break;
+      case 'product':
+        router.push('/create-marketplace-listing');
+        break;
+      case 'community':
+        // Handle community creation
+        break;
+    }
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.content}>
-        <MaterialIcons name="add-circle-outline" size={64} color="#1B5E20" style={styles.icon} />
-        <Text style={styles.title}>Create Content</Text>
-        <Text style={styles.subtitle}>Choose what you'd like to create</Text>
-        
-        <View style={styles.optionsContainer}>
-          <TouchableOpacity style={styles.optionButton} onPress={handleCreatePost}>
-            <MaterialIcons name="chat-bubble-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.optionText}>Create Post</Text>
+    <Modal
+      animationType="fade"
+      transparent={true}
+      onRequestClose={() => {}}
+    >
+      <TouchableOpacity 
+        style={styles.overlay} 
+        onPress={() => router.back()}
+      >
+        <View style={styles.container}>
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => router.back()}
+          >
+            <MaterialIcons name="close" size={24} color="#666666" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.optionButton} onPress={handleCreateMarketplaceListing}>
-            <MaterialIcons name="shopping-cart" size={24} color="#FFFFFF" />
-            <Text style={styles.optionText}>Create Listing</Text>
-          </TouchableOpacity>
+          <Text style={styles.title}>Create New</Text>
+          <Text style={styles.subtitle}>Choose an action to get started</Text>
           
-          <TouchableOpacity style={styles.optionButton} onPress={handlePostJob}>
-            <MaterialIcons name="work-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.optionText}>Post a Job</Text>
-          </TouchableOpacity>
+          <View style={styles.actionsContainer}>
+            {actions.map((action) => (
+              <TouchableOpacity
+                key={action.id}
+                style={styles.actionCard}
+                onPress={() => handleAction(action.id)}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: `${action.color}20` }]}>
+                  <MaterialIcons name={action.icon} size={24} color={action.color} />
+                </View>
+                <Text style={styles.actionTitle}>{action.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
-    </ThemedView>
+      </TouchableOpacity>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
   },
-  content: {
-    width: '90%',
-    maxWidth: 400,
+  container: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    maxHeight: '70%',
   },
-  icon: {
-    marginBottom: 16,
+  closeButton: {
+    alignSelf: 'flex-end',
+    padding: 8,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#111111',
     marginBottom: 8,
     textAlign: 'center',
@@ -83,22 +101,31 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: 'center',
   },
-  optionsContainer: {
-    width: '100%',
-    gap: 16,
-  },
-  optionButton: {
+  actionsContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  actionCard: {
+    width: '48%',
     alignItems: 'center',
-    backgroundColor: '#1B5E20',
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  actionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
   },
-  optionText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  actionTitle: {
+    fontSize: 14,
     fontWeight: '600',
-    marginLeft: 12,
+    color: '#111111',
+    textAlign: 'center',
   },
 });
