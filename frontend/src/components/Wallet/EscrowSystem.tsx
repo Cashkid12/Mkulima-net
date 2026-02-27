@@ -303,7 +303,7 @@ export default function EscrowSystem() {
                               {transaction.product.name}
                             </h3>
                             <div className="flex items-center">
-                              <StatusIcon className={`h-5 w-5 ${getStatusInfo(transaction.status).color}`} />
+                              <StatusIcon />
                               <span className={`ml-2 text-sm font-medium ${getStatusInfo(transaction.status).color}`}>
                                 {getStatusInfo(transaction.status).text}
                               </span>
