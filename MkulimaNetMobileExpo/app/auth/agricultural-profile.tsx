@@ -48,7 +48,7 @@ export default function AgriculturalProfileScreen() {
       // Get existing metadata
       const existingMetadata = user?.publicMetadata || {};
       
-      // Update user metadata with agricultural profile
+      // Update user metadata with agricultural profile (critical for navigation)
       await user?.setPublicMetadata({
         ...existingMetadata,
         farmName: farmName,
@@ -66,7 +66,39 @@ export default function AgriculturalProfileScreen() {
         agriculturalProfileComplete: true,
       });
 
-      // Navigate to dashboard
+      // Sync agricultural profile data with backend API (non-critical for navigation)
+      try {
+        const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
+        const agriculturalResponse = await fetch(`${baseUrl}/api/profile/agricultural`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${await user?.getIdToken()}`,
+          },
+          body: JSON.stringify({
+            farmName: farmName,
+            farmSize: farmSize,
+            farmingType: primaryActivities.cropFarming ? 'crops' : 
+                        primaryActivities.dairyFarming || primaryActivities.poultry || primaryActivities.fishFarming ? 'livestock' : 
+                        primaryActivities.horticulture ? 'crops' : 'mixed',
+            crops: primaryActivities.cropFarming || primaryActivities.horticulture ? ['General Crops'] : [],
+            livestock: primaryActivities.dairyFarming || primaryActivities.poultry || primaryActivities.fishFarming ? ['General Livestock'] : [],
+            yearsExperience: parseInt(yearsExperience.replace(/\D/g, '')) || 0,
+            certifications: Object.entries(certifications)
+              .filter(([_, value]) => value)
+              .map(([key, _]) => key),
+            education: languages.english ? 'English Speaker' : ''
+          }),
+        });
+
+        if (!agriculturalResponse.ok) {
+          console.warn('Warning: Could not sync agricultural profile with backend');
+        }
+      } catch (error) {
+        console.warn('Warning: Could not sync agricultural profile with backend', error);
+      }
+
+      // Navigate to dashboard (should happen regardless of backend sync)
       router.push('/(tabs)/feed');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'An error occurred while saving your agricultural profile');

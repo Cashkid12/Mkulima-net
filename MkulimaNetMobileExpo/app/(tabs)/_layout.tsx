@@ -34,7 +34,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="jobs/index"
+        name="jobs"
         options={{
           title: 'Jobs+',
           tabBarIcon: ({ color, size }) => (
@@ -43,7 +43,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="marketplace/index"
+        name="marketplace"
         options={{
           title: 'Marketplace',
           tabBarIcon: ({ color, size }) => (
@@ -61,7 +61,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="dashboard"
+        name="portfolio"
         options={{
           title: 'Portfolio',
           tabBarIcon: ({ color, size }) => (

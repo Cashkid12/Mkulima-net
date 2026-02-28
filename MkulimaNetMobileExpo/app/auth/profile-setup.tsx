@@ -49,7 +49,7 @@ export default function ProfileSetupScreen() {
   // Handle saving profile
   const handleSaveProfile = async () => {
     try {
-      // Update user profile with Clerk
+      // Update user profile with Clerk (critical for navigation)
       await user?.update({
         firstName: displayName.split(' ')[0],
         lastName: displayName.split(' ').slice(1).join(' '),
@@ -62,7 +62,7 @@ export default function ProfileSetupScreen() {
         });
       }
 
-      // Store additional metadata in Clerk
+      // Store additional metadata in Clerk (critical for navigation)
       await user?.setPublicMetadata({
         role: role,
         location: location,
@@ -72,7 +72,30 @@ export default function ProfileSetupScreen() {
         joinedVia: 'email', // This would be dynamic based on auth method
       });
 
-      // Navigate to agricultural profile setup
+      // Sync profile data with backend API (non-critical for navigation)
+      try {
+        const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
+        const profileResponse = await fetch(`${baseUrl}/api/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${await user?.getIdToken()}`,
+          },
+          body: JSON.stringify({
+            bio: bio,
+            location: location,
+            role: role
+          }),
+        });
+
+        if (!profileResponse.ok) {
+          console.warn('Warning: Could not sync profile with backend');
+        }
+      } catch (error) {
+        console.warn('Warning: Could not sync profile with backend', error);
+      }
+
+      // Navigate to agricultural profile setup (should happen regardless of backend sync)
       router.push('/auth/agricultural-profile');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'An error occurred while saving your profile');

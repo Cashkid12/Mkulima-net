@@ -29,7 +29,19 @@ export default function LoginScreen() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)/feed');
+        
+        // Check if user has completed profile setup
+        const currentUser = await signIn.createdSession.getUser();
+        const hasUsername = !!currentUser.username;
+        const hasCompletedProfile = currentUser.publicMetadata.completedProfile;
+        
+        if (!hasUsername || !hasCompletedProfile) {
+          // Redirect to username setup if not completed
+          router.replace('/auth/username');
+        } else {
+          // Otherwise go to feed
+          router.replace('/(tabs)/feed');
+        }
       } else {
         Alert.alert('Error', 'Login failed. Please try again.');
       }

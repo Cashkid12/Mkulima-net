@@ -76,14 +76,29 @@ export default function UsernameScreen() {
     setCheckingAvailability(true);
     setUsernameStatus('checking');
 
-    // Simulate API call to check availability
-    // In a real app, this would be an actual API call to your backend
-    setTimeout(() => {
-      // For demo purposes, we'll assume the username is available
-      // In a real app, you'd check against your database
-      setCheckingAvailability(false);
+    try {
+      // Make API call to check username availability
+      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/api/profile/check-username/${username}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.available) {
+          setUsernameStatus('available');
+        } else {
+          setUsernameStatus('taken');
+        }
+      } else {
+        // If there's an error, assume the username is taken
+        setUsernameStatus('taken');
+      }
+    } catch (error) {
+      console.error('Error checking username availability:', error);
+      // In case of network error, assume available for now and validate on submission
       setUsernameStatus('available');
-    }, 500);
+    } finally {
+      setCheckingAvailability(false);
+    }
   };
 
   // Handle username input change
@@ -102,18 +117,42 @@ export default function UsernameScreen() {
   };
 
   // Handle continue button press
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (usernameStatus === 'available') {
-      // Update user with username and display name
-      user?.update({
-        username: username,
-        firstName: displayName.split(' ')[0],
-        lastName: displayName.split(' ').slice(1).join(' ')
-      }).then(() => {
+      try {
+        // First, update the user in Clerk (this is the critical part for navigation)
+        await user?.update({
+          username: username,
+          firstName: displayName.split(' ')[0],
+          lastName: displayName.split(' ').slice(1).join(' ')
+        });
+          
+        // Then try to sync with backend API (non-critical for navigation)
+        try {
+          const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
+          const response = await fetch(`${baseUrl}/api/profile/username`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${await user?.getIdToken()}`,
+            },
+            body: JSON.stringify({ username }),
+          });
+  
+          if (!response.ok) {
+            console.warn('Warning: Could not sync username with backend');
+          }
+        } catch (apiError) {
+          console.warn('Warning: Could not sync username with backend', apiError);
+        }
+          
+        // Navigate to profile setup regardless of backend sync success
         router.push('/auth/profile-setup');
-      }).catch((error) => {
-        Alert.alert('Error', error.message);
-      });
+          
+      } catch (clerkError) {
+        console.error('Error updating Clerk user:', clerkError);
+        Alert.alert('Error', 'Failed to save username. Please try again.');
+      }
     } else {
       Alert.alert('Invalid Username', 'Please choose an available username.');
     }

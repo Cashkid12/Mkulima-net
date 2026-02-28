@@ -100,6 +100,15 @@ export default function FeedScreen() {
   if (!isSignedIn || !userId) {
     return <Redirect href="/welcome" />;
   }
+  
+  // Check if user has completed profile setup
+  const hasUsername = !!user.username;
+  const hasCompletedProfile = user.publicMetadata.completedProfile;
+  
+  if (!hasUsername || !hasCompletedProfile) {
+    // Redirect to username setup if not completed
+    return <Redirect href="/auth/username" />;
+  }
 
   useEffect(() => {
     if (!isLoading && (!isSignedIn || !userId)) {
@@ -365,10 +374,24 @@ export default function FeedScreen() {
 
   const fetchPosts = async () => {
     setLoading(true);
-    // In a real app, this would fetch from backend
-    setTimeout(() => {
+    try {
+      // Fetch posts from backend API
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com'}/api/posts`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(data); // Use actual API data instead of mock
+      } else {
+        // Fallback to mock data if API fails
+        console.warn('Failed to fetch posts from API, using mock data');
+        // Keep the existing mock data as fallback
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      // Fallback to mock data if API fails
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const onRefresh = async () => {
