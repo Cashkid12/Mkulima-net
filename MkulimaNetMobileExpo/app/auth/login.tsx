@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useSignIn } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -47,7 +47,7 @@ export default function LoginScreen() {
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
         redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/(tabs)/feed',
+        redirectUrlComplete: '/auth/username',
       });
     } catch (error: any) {
       Alert.alert('Error', 'Google sign in failed');
@@ -61,7 +61,7 @@ export default function LoginScreen() {
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_apple',
         redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/(tabs)/feed',
+        redirectUrlComplete: '/auth/username',
       });
     } catch (error: any) {
       Alert.alert('Error', 'Apple sign in failed');
@@ -92,16 +92,16 @@ export default function LoginScreen() {
           <View style={styles.socialSection}>
             <TouchableOpacity style={[styles.socialButton, styles.googleButton]} onPress={handleGoogleLogin}>
               <View style={styles.socialIconContainer}>
-                <Text style={styles.socialIconText}>G</Text>
+                <Ionicons name="logo-google" size={24} color="white" />
               </View>
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
+              <Text style={styles.socialButtonText}>Sign in with Google</Text>
             </TouchableOpacity>
-            
+                                 
             <TouchableOpacity style={[styles.socialButton, styles.appleButton]} onPress={handleAppleLogin}>
               <View style={styles.socialIconContainer}>
-                <Text style={styles.socialIconText}>A</Text>
+                <Ionicons name="logo-apple" size={24} color="white" />
               </View>
-              <Text style={styles.appleButtonText}>Continue with Apple</Text>
+              <Text style={styles.appleButtonText}>Sign in with Apple</Text>
             </TouchableOpacity>
           </View>
 
@@ -161,16 +161,16 @@ export default function LoginScreen() {
         <View style={styles.socialSection}>
           <TouchableOpacity style={[styles.socialButton, styles.googleButton]} onPress={handleGoogleLogin}>
             <View style={styles.socialIconContainer}>
-              <Text style={styles.socialIconText}>G</Text>
+              <Ionicons name="logo-google" size={24} color="white" />
             </View>
-            <Text style={styles.socialButtonText}>Continue with Google</Text>
+            <Text style={styles.socialButtonText}>Sign in with Google</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={[styles.socialButton, styles.appleButton]} onPress={handleAppleLogin}>
             <View style={styles.socialIconContainer}>
-              <Text style={styles.socialIconText}>A</Text>
+              <Ionicons name="logo-apple" size={24} color="white" />
             </View>
-            <Text style={styles.appleButtonText}>Continue with Apple</Text>
+            <Text style={styles.appleButtonText}>Sign in with Apple</Text>
           </TouchableOpacity>
         </View>
 

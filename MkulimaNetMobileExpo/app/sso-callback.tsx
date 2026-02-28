@@ -8,11 +8,11 @@ export default function SSOCallbackScreen() {
   useEffect(() => {
     // This is just a callback endpoint for OAuth redirects
     // Clerk handles the OAuth flow automatically
-    // We just redirect to the feed after a brief moment
+    // We redirect to the username setup after a brief moment
     const timer = setTimeout(() => {
-      router.replace('/(tabs)/feed');
+      router.replace('/auth/username');
     }, 1000);
-
+  
     return () => clearTimeout(timer);
   }, [router]);
 

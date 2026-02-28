@@ -64,7 +64,7 @@ export default function VerifyEmailScreen() {
         if (setActive) {
           await setActive({ session: result.createdSessionId });
         }
-        router.replace('/(tabs)/feed');
+        router.replace('/auth/username');
       } else {
         Alert.alert('Error', 'Verification failed. Please try again.');
       }

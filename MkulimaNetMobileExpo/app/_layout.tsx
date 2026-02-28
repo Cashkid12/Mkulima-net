@@ -49,6 +49,19 @@ export default function RootLayout() {
           <Stack.Screen name="auth/signup" options={{ title: 'Sign Up' }} />
           <Stack.Screen name="auth/verify-email" options={{ title: 'Verify Email' }} />
           <Stack.Screen name="auth/forgot-password" options={{ title: 'Forgot Password' }} />
+          <Stack.Screen name="auth/username" options={{ title: 'Choose Username' }} />
+          <Stack.Screen name="auth/profile-setup" options={{ title: 'Profile Setup' }} />
+          <Stack.Screen name="auth/agricultural-profile" options={{ title: 'Agricultural Profile' }} />
+          <Stack.Screen name="change-username" options={{ title: 'Change Username' }} />
+          <Stack.Screen name="profile/edit" options={{ title: 'Edit Profile' }} />
+          <Stack.Screen name="change-password" options={{ title: 'Change Password' }} />
+          <Stack.Screen name="privacy-settings" options={{ title: 'Privacy Settings' }} />
+          <Stack.Screen name="notification-sounds" options={{ title: 'Notification Sounds' }} />
+          <Stack.Screen name="blocked-users" options={{ title: 'Blocked Users' }} />
+          <Stack.Screen name="visibility-settings" options={{ title: 'Visibility Settings' }} />
+          <Stack.Screen name="language-settings" options={{ title: 'Language' }} />
+          <Stack.Screen name="help-support" options={{ title: 'Help & Support' }} />
+          <Stack.Screen name="about" options={{ title: 'About MkulimaNet' }} />
           <Stack.Screen name="sso-callback" options={{ title: 'Loading...', presentation: 'modal', headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />

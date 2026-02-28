@@ -111,6 +111,64 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// @route   PUT /api/profile/username
+// @desc    Update user username
+// @access  Private
+router.put('/username', [
+  auth,
+  [
+    body('username')
+      .not()
+      .isEmpty()
+      .withMessage('Username is required')
+      .isLength({ min: 3, max: 30 })
+      .withMessage('Username must be between 3 and 30 characters')
+      .matches(/^[a-zA-Z0-9._]+$/)
+      .withMessage('Username can only contain letters, numbers, dots, and underscores')
+  ]
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { username } = req.body;
+
+    // Check if username already exists
+    const existingUser = await User.findOne({ username, _id: { $ne: req.user.id } });
+    if (existingUser) {
+      return res.status(400).json({ msg: 'Username already taken' });
+    }
+
+    // Update the username
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { username: username.toLowerCase() },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    res.json({ 
+      msg: 'Username updated successfully', 
+      user: {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
+      }
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET /api/profile/:userId
 // @desc    Get user profile by ID
 // @access  Public (or Private based on privacy settings)
@@ -143,6 +201,94 @@ router.post('/certificate', auth, upload.single('certificate'), async (req, res)
       msg: 'Certificate uploaded successfully',
       filePath: req.file.path
     });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT /api/profile/agricultural
+// @desc    Update agricultural profile information
+// @access  Private
+router.put('/agricultural', auth, [
+  body('farmName').optional().trim().isLength({ max: 100 }),
+  body('farmSize').optional().trim(),
+  body('farmingType').optional().isIn(['crops', 'livestock', 'mixed', 'agribusiness']),
+  body('crops').optional().isArray(),
+  body('livestock').optional().isArray(),
+  body('yearsExperience').optional().isInt({ min: 0, max: 100 }),
+  body('certifications').optional().isArray(),
+  body('education').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      farmName,
+      farmSize,
+      farmingType,
+      crops,
+      livestock,
+      yearsExperience,
+      certifications,
+      education
+    } = req.body;
+
+    // Build agricultural profile object
+    const agriculturalFields = {};
+    if (farmName !== undefined) agriculturalFields.farmName = farmName;
+    if (farmSize !== undefined) agriculturalFields.farmSize = farmSize;
+    if (farmingType !== undefined) agriculturalFields.farmingType = farmingType;
+    if (crops !== undefined) agriculturalFields.crops = crops;
+    if (livestock !== undefined) agriculturalFields.livestock = livestock;
+    if (yearsExperience !== undefined) agriculturalFields.yearsExperience = yearsExperience;
+    if (certifications !== undefined) agriculturalFields.certifications = certifications;
+    if (education !== undefined) agriculturalFields.education = education;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: agriculturalFields },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    res.json({ 
+      msg: 'Agricultural profile updated successfully', 
+      profile: user 
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/profile/check-username/:username
+// @desc    Check if a username is available
+// @access  Public
+router.get('/check-username/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    // Validate username format
+    if (!username || username.length < 3 || username.length > 30 || !/^[a-zA-Z0-9._]+$/.test(username)) {
+      return res.status(400).json({ available: false, msg: 'Invalid username format' });
+    }
+
+    // Check if username exists
+    const existingUser = await User.findOne({ username: username.toLowerCase() });
+    
+    if (existingUser) {
+      return res.json({ available: false, msg: 'Username already taken' });
+    }
+
+    res.json({ available: true, msg: 'Username is available' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

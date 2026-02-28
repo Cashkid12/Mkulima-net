@@ -65,6 +65,7 @@ export default function SettingsScreen() {
       title: 'Account',
       items: [
         { label: 'Edit Profile', onPress: () => router.push('/profile/edit') },
+        { label: 'Change Username', onPress: () => router.push('/change-username') },
         { label: 'Change Password', onPress: () => router.push('/change-password') },
         { label: 'Privacy Settings', onPress: () => router.push('/privacy-settings') },
       ]
