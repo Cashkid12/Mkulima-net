@@ -79,7 +79,7 @@ export default function JobApplicationsScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         Alert.alert('Error', 'You must be logged in to view job applications');
-        router.push('/login');
+        router.push('/auth/login');
         return;
       }
 

@@ -28,11 +28,11 @@ export default function WelcomeScreen() {
   ];
 
   const handleGetStarted = () => {
-    router.push('/clerk-signup');
+    router.push('/auth/signup');
   };
 
   const handleSignIn = () => {
-    router.push('/clerk-login');
+    router.push('/auth/login');
   };
 
   return (

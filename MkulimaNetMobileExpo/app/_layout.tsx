@@ -45,6 +45,11 @@ export default function RootLayout() {
           <Stack.Screen name="job-application" options={{ title: 'Job Application' }} />
           <Stack.Screen name="job-applications" options={{ title: 'Job Applications' }} />
           <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+          <Stack.Screen name="auth/login" options={{ title: 'Login' }} />
+          <Stack.Screen name="auth/signup" options={{ title: 'Sign Up' }} />
+          <Stack.Screen name="auth/verify-email" options={{ title: 'Verify Email' }} />
+          <Stack.Screen name="auth/forgot-password" options={{ title: 'Forgot Password' }} />
+          <Stack.Screen name="sso-callback" options={{ title: 'Loading...', presentation: 'modal', headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </SafeAreaProvider>

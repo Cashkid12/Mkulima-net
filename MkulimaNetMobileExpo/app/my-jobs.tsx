@@ -48,7 +48,7 @@ export default function MyJobsScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         Alert.alert('Error', 'You must be logged in to view your jobs');
-        router.push('/login');
+        router.push('/auth/login');
         return;
       }
 

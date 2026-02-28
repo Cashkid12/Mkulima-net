@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: false,
     });
     
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   return (

@@ -16,7 +16,11 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 60000, // Keep trying to send operations for 60 seconds
       socketTimeoutMS: 45000,        // Close sockets after 45 seconds of inactivity
       maxPoolSize: 10,              // Maintain up to 10 socket connections
-      family: 4                    // Use IPv4 only
+      family: 4,                    // Use IPv4 only
+      retryWrites: true,            // Enable retryable writes
+      bufferCommands: false,        // Disable mongoose buffering
+      bufferMaxEntries: 0,          // Disable MongoDB driver buffering
+      tls: true                     // Use TLS for security
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -46,7 +50,10 @@ const connectDB = async () => {
       console.log('1. Create a MongoDB Atlas account: https://www.mongodb.com/atlas/database');
       console.log('2. Create a free cluster');
       console.log('3. Create a database user with username/password');
-      console.log('4. Allow connections from anywhere (0.0.0.0/0)');
+      console.log('4. Allow connections from anywhere (0.0.0.0/0) - CRITICAL STEP!');
+      console.log('   - Go to MongoDB Atlas Dashboard > Network Access > Add IP Address');
+      console.log('   - Click "Allow Access from Anywhere" or add 0.0.0.0/0');
+      console.log('   - This is required for Render deployment to work');
       console.log('5. Update the MONGODB_URI environment variable in Render with your Atlas connection string');
       console.log('--------------------------------\n');
     } else {
