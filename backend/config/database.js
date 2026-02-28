@@ -19,7 +19,6 @@ const connectDB = async () => {
       family: 4,                    // Use IPv4 only
       retryWrites: true,            // Enable retryable writes
       bufferCommands: false,        // Disable mongoose buffering
-      bufferMaxEntries: 0,          // Disable MongoDB driver buffering
       tls: true                     // Use TLS for security
     });
 
