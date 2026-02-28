@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, FlatList, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Dimensions, Animated } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext';
+import { useRouter } from 'expo-router';
+import { useUser } from '@clerk/clerk-expo';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Redirect } from 'expo-router';
 
 // Define TypeScript interfaces
 interface Author {
@@ -82,7 +84,27 @@ interface Story {
 }
 
 export default function FeedScreen() {
-  const { authState } = useAuth();
+  const router = useRouter();
+  const { user, isLoaded: isLoading } = useUser();
+  const userId = user?.id;
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!userId) {
+    return <Redirect href="/welcome" />;
+  }
+
+  useEffect(() => {
+    if (!isLoading && !userId) {
+      router.replace('/welcome');
+    }
+  }, [userId, isLoading, router]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +167,7 @@ export default function FeedScreen() {
         id: 1,
         userId: 0,
         username: 'Your Story',
-        avatar: authState.user?.avatar || 'https://via.placeholder.com/60x60',
+        avatar: user?.imageUrl || 'https://via.placeholder.com/60x60',
         isViewed: false,
         isOwnStory: true,
         timestamp: 'Just now'
@@ -177,7 +199,7 @@ export default function FeedScreen() {
       }
     ];
     setStories(mockStories);
-  }, [authState.user?.avatar]);
+  }, [user?.imageUrl]);
 
   // Mock data for initial load - in real app this would come from backend
   useEffect(() => {
@@ -389,7 +411,7 @@ export default function FeedScreen() {
     if (commentText.trim() && selectedPost) {
       const newComment: Comment = {
         id: Date.now(),
-        author: { name: authState.user?.name || 'Current User', avatar: authState.user?.avatar || 'https://via.placeholder.com/24x24' },
+        author: { name: user?.firstName || 'Current User', avatar: user?.imageUrl || 'https://via.placeholder.com/24x24' },
         content: commentText,
         likes: 0,
         timestamp: 'Just now',
@@ -1897,5 +1919,11 @@ const styles = StyleSheet.create({
   emptyStateSubtext: {
     fontSize: 14,
     marginTop: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
 });

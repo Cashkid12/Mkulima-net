@@ -23,6 +23,9 @@ const feedRoutes = require('./routes/feed');
 const followRoutes = require('./routes/follow');
 const messageRoutes = require('./routes/messages');
 
+// Import Clerk middleware
+const authenticateClerkUser = require('./middleware/clerkAuth');
+
 // Import models at the top to avoid dynamic imports in socket events
 const { Conversation } = require('./models/Conversation');
 const Message = require('./models/Message');
@@ -43,19 +46,19 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/communities', communityRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/weather', weatherRoutes);
-app.use('/api/feed', feedRoutes);
-app.use('/api/follow', followRoutes);
+app.use('/api/users', authenticateClerkUser, userRoutes);
+app.use('/api/posts', authenticateClerkUser, postRoutes);
+app.use('/api/products', authenticateClerkUser, productRoutes);
+app.use('/api/chat', authenticateClerkUser, chatRoutes);
+app.use('/api/jobs', authenticateClerkUser, jobRoutes);
+app.use('/api/messages', authenticateClerkUser, messageRoutes);
+app.use('/api/notifications', authenticateClerkUser, notificationRoutes);
+app.use('/api/profile', authenticateClerkUser, profileRoutes);
+app.use('/api/communities', authenticateClerkUser, communityRoutes);
+app.use('/api/settings', authenticateClerkUser, settingsRoutes);
+app.use('/api/weather', authenticateClerkUser, weatherRoutes);
+app.use('/api/feed', authenticateClerkUser, feedRoutes);
+app.use('/api/follow', authenticateClerkUser, followRoutes);
 
 // Create HTTP server
 const server = http.createServer(app);

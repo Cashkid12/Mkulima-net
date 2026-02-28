@@ -1,300 +1,174 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-
-const { width } = Dimensions.get('window');
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function WelcomeScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [showContinue, setShowContinue] = useState(false);
-  const scrollX = new Animated.Value(0);
-  const pulseValue = new Animated.Value(1);
-
-  // Professional color palette
-  const colors = {
-    primaryGreen: '#2E7D32',
-    secondaryGreen: '#4CAF50',
-    lightGreen: '#E8F5E9',
-    white: '#FFFFFF',
-    offWhite: '#FAFAFA',
-    lightGray: '#F5F7FA',
-    primaryText: '#222222',
-    secondaryText: '#757575',
-    metadataText: '#BDBDBD',
-    borderColor: '#E0E0E0',
-  };
+  const router = useRouter();
 
   const slides = [
     {
-      title: 'Network with Farmers',
-      description: 'Connect with fellow farmers across Kenya to share knowledge and opportunities',
-      icon: 'group',
-      color: colors.primaryGreen,
+      title: 'Welcome to MkulimaNet',
+      subtitle: 'Kenya\'s largest agricultural network',
+      description: 'Connect with farmers, buyers, and experts across the country',
+      image: '🌾'
     },
     {
-      title: 'Sell Your Produce',
-      description: 'Reach buyers directly and get fair prices for your agricultural products',
-      icon: 'shopping-cart',
-      color: colors.secondaryGreen,
+      title: 'Smart Marketplace',
+      subtitle: 'Buy and sell agricultural products',
+      description: 'From fresh produce to farm equipment, find what you need',
+      image: '🛍️'
     },
     {
-      title: 'Secure Payments',
-      description: 'Trade with confidence using our escrow system and secure payment methods',
-      icon: 'shield',
-      color: colors.primaryGreen,
-    },
+      title: 'Job Opportunities',
+      subtitle: 'Find agricultural work',
+      description: 'Connect with employers and land your next opportunity',
+      image: '💼'
+    }
   ];
 
-  useEffect(() => {
-    // Animate pulse for continue button
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseValue, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseValue, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Show continue button after a delay
-    const timer = setTimeout(() => {
-      setShowContinue(true);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleGetStarted = () => {
-    // Navigation would happen here
+    router.push('/clerk-signup');
   };
 
-  const handleSkip = () => {
-    // Navigation would happen here
+  const handleSignIn = () => {
+    router.push('/clerk-login');
   };
 
-  const handleScroll = (event: any) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / width);
-    setCurrentSlide(index);
-  };
+  return (
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.carousel}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / 300);
+          setCurrentSlide(index);
+        }}
+        scrollEventThrottle={16}
+      >
+        {slides.map((slide, index) => (
+          <View key={index} style={styles.slide}>
+            <View style={styles.imageContainer}>
+              <Text style={styles.emoji}>{slide.image}</Text>
+            </View>
+            <Text style={styles.title}>{slide.title}</Text>
+            <Text style={styles.subtitle}>{slide.subtitle}</Text>
+            <Text style={styles.description}>{slide.description}</Text>
+          </View>
+        ))}
+      </ScrollView>
 
-  const renderSlide = ({ item, index }: any) => (
-    <View style={[styles.slide, { width }]}>
-      <View style={[styles.slideIconContainer, { backgroundColor: colors.lightGreen }]}>
-        <MaterialIcons 
-          name={item.icon as any} 
-          size={64} 
-          color={item.color} 
-        />
-      </View>
-      <Text style={[styles.slideTitle, { color: colors.primaryText }]}>{item.title}</Text>
-      <Text style={[styles.slideDescription, { color: colors.secondaryText }]}>
-        {item.description}
-      </Text>
-    </View>
-  );
-
-  const renderDots = () => (
-    <View style={styles.dotsContainer}>
-      {slides.map((_, index) => {
-        const opacity = currentSlide === index ? 1 : 0.3;
-        return (
+      <View style={styles.indicatorContainer}>
+        {slides.map((_, index) => (
           <View
             key={index}
             style={[
-              styles.dot,
-              { 
-                backgroundColor: colors.primaryGreen,
-                opacity 
-              }
+              styles.indicator,
+              currentSlide === index && styles.activeIndicator
             ]}
           />
-        );
-      })}
+        ))}
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted}>
+          <Text style={styles.getStartedText}>Get Started</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
+          <Text style={styles.signInText}>Sign In</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  );
-
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
-      {/* Skip Button */}
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Text style={[styles.skipText, { color: colors.metadataText }]}>Skip</Text>
-      </TouchableOpacity>
-
-      {/* Logo Screen */}
-      <View style={styles.logoScreen}>
-        <View style={[styles.logo, { backgroundColor: colors.lightGreen }]}>
-          <MaterialIcons name="agriculture" size={80} color={colors.primaryGreen} />
-        </View>
-        <Text style={[styles.appName, { color: colors.primaryText }]}>MkulimaNet</Text>
-        <Text style={[styles.tagline, { color: colors.secondaryGreen }]}>
-          Connect. Grow. Prosper.
-        </Text>
-        
-        {showContinue && (
-          <Animated.View style={[styles.continueButton, { transform: [{ scale: pulseValue }] }]}>
-            <TouchableOpacity 
-              style={[styles.continueTouch, { backgroundColor: colors.primaryGreen }]}
-              onPress={handleGetStarted}
-            >
-              <Text style={styles.continueText}>Get Started</Text>
-              <MaterialIcons name="arrow-forward" size={20} color={colors.white} />
-            </TouchableOpacity>
-          </Animated.View>
-        )}
-      </View>
-
-      {/* Value Proposition Slides */}
-      <View style={styles.slidesContainer}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          style={styles.scrollView}
-        >
-          {slides.map((slide, index) => (
-            <View key={index} style={{ width }}>
-              {renderSlide({ item: slide, index })}
-            </View>
-          ))}
-        </ScrollView>
-        
-        {renderDots()}
-        
-        <View style={styles.bottomButtons}>
-          <TouchableOpacity 
-            style={[styles.getStartedButton, { backgroundColor: colors.primaryGreen }]}
-            onPress={handleGetStarted}
-          >
-            <Text style={styles.getStartedText}>Get Started</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F7FA',
   },
-  skipButton: {
-    position: 'absolute',
-    top: 16,
-    right: 24,
-    zIndex: 10,
-  },
-  skipText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  logoScreen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 48,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  appName: {
-    fontSize: 32,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  tagline: {
-    fontSize: 18,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: 48,
-  },
-  continueButton: {
-    position: 'absolute',
-    bottom: 48,
-  },
-  continueTouch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 28,
-  },
-  continueText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    marginRight: 8,
-  },
-  slidesContainer: {
-    flex: 1,
-  },
-  scrollView: {
+  carousel: {
     flex: 1,
   },
   slide: {
-    flex: 1,
+    width: 300,
+    padding: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 48,
   },
-  slideIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 32,
+  imageContainer: {
+    marginBottom: 30,
   },
-  slideTitle: {
+  emoji: {
+    fontSize: 80,
+  },
+  title: {
     fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 16,
+    fontWeight: 'bold',
+    color: '#222222',
     textAlign: 'center',
+    marginBottom: 10,
   },
-  slideDescription: {
+  subtitle: {
+    fontSize: 18,
+    color: '#2E7D32',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  description: {
     fontSize: 16,
+    color: '#757575',
     textAlign: 'center',
     lineHeight: 24,
   },
-  dotsContainer: {
+  indicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 30,
   },
-  dot: {
+  indicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: '#D1D5DB',
     marginHorizontal: 4,
   },
-  bottomButtons: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+  activeIndicator: {
+    backgroundColor: '#2E7D32',
+    width: 20,
+  },
+  buttonContainer: {
+    padding: 20,
   },
   getStartedButton: {
-    height: 56,
-    borderRadius: 16,
+    backgroundColor: '#2E7D32',
+    borderRadius: 30,
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 15,
+    shadowColor: '#2E7D32',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   getStartedText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
+  },
+  signInButton: {
+    borderColor: '#2E7D32',
+    borderWidth: 2,
+    borderRadius: 30,
+    padding: 16,
+    alignItems: 'center',
+  },
+  signInText: {
+    color: '#2E7D32',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
