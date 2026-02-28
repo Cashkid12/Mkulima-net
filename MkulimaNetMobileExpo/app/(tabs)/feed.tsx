@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, FlatList, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Dimensions, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useUser } from '@clerk/clerk-expo';
+import { useUser, useAuth } from '@clerk/clerk-expo';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect } from 'expo-router';
@@ -86,6 +86,7 @@ interface Story {
 export default function FeedScreen() {
   const router = useRouter();
   const { user, isLoaded: isLoading } = useUser();
+  const { isSignedIn } = useAuth();
   const userId = user?.id;
 
   if (isLoading) {
@@ -96,15 +97,15 @@ export default function FeedScreen() {
     );
   }
 
-  if (!userId) {
+  if (!isSignedIn || !userId) {
     return <Redirect href="/welcome" />;
   }
 
   useEffect(() => {
-    if (!isLoading && !userId) {
+    if (!isLoading && (!isSignedIn || !userId)) {
       router.replace('/welcome');
     }
-  }, [userId, isLoading, router]);
+  }, [userId, isSignedIn, isLoading, router]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);

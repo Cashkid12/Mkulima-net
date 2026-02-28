@@ -2,9 +2,25 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ClerkProvider } from '@clerk/clerk-expo';
+
+const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+console.log('CLERK_PUBLISHABLE_KEY in _layout:', CLERK_PUBLISHABLE_KEY);
 
 export default function RootLayout() {
+  if (!CLERK_PUBLISHABLE_KEY) {
+    return (
+      <SafeAreaProvider>
+        <Stack>
+          <Stack.Screen name="welcome" options={{ title: 'Welcome' }} />
+        </Stack>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
       <SafeAreaProvider>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -32,5 +48,6 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style="auto" />
       </SafeAreaProvider>
+    </ClerkProvider>
   );
 }

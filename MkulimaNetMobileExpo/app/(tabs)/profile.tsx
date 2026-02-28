@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
-import { useClerkAuth } from '../../contexts/ClerkAuthContext';
-import { useUser } from '@clerk/clerk-expo';
+import { useUser, useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
-  const { userId, user, isLoading, signOut } = useClerkAuth();
-  const { user: clerkUser } = useUser();
+  const { user, isLoaded: isLoading } = useUser();
+  const { signOut: clerkSignOut, isSignedIn } = useAuth();
+  const userId = user?.id;
   const router = useRouter();
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await clerkSignOut();
       router.replace('/welcome');
     } catch (error) {
       Alert.alert('Error', 'Failed to sign out');

@@ -1,11 +1,8 @@
 import 'react-native-gesture-handler';
 import React from 'react';
-import { ClerkProvider } from '@clerk/clerk-expo';
 import { Slot } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { ClerkAuthProvider } from './contexts/ClerkAuthContext';
-
-const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+// import { ClerkAuthProvider } from './contexts/ClerkAuthContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -18,15 +15,5 @@ export default function App() {
     return null;
   }
 
-  if (!CLERK_PUBLISHABLE_KEY) {
-    return null; // or show an error message
-  }
-
-  return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-      <ClerkAuthProvider>
-        <Slot />
-      </ClerkAuthProvider>
-    </ClerkProvider>
-  );
+  return <Slot />;
 }
