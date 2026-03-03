@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, ScrollView, Modal, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal, Pressable } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+
+const kenyaCounties = [
+  'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Malindi', 'Kitale',
+  'Garissa', 'Nyeri', 'Meru', 'Kisii', 'Migori', 'Narok', 'Kakamega',
+  'Kiambu', 'Machakos', 'Kajiado', 'Bomet', 'Kericho', 'Nyamira', 'Homa Bay',
+  'Makueni', 'Kitui', 'Tharaka-Nithi', 'Embu', 'Marsabit', 'Isiolo', 'Wajir',
+  'Mandera', 'Marsabit', 'Samburu', 'Trans Nzoia', 'Uasin Gishu', 'Elgeyo Marakwet',
+  'Nandi', 'Laikipia', 'Nyandarua', 'Kirinyaga', 'Murang\'a', 'Kirinyaga'
+];
 
 export default function ProfileSetupScreen() {
   const { user } = useUser();
@@ -11,18 +20,19 @@ export default function ProfileSetupScreen() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(user?.fullName || '');
   const [bio, setBio] = useState('');
-  const [role, setRole] = useState('farmer');
   const [location, setLocation] = useState('');
-  const [showRoleModal, setShowRoleModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [charactersLeft, setCharactersLeft] = useState(200);
+  const [searchCounty, setSearchCounty] = useState('');
+  const [charactersLeft, setCharactersLeft] = useState(150);
 
-  // Handle image picking
-  const pickImage = async () => {
-    // Request permission for photo library
+  const filteredCounties = kenyaCounties.filter(county =>
+    county.toLowerCase().includes(searchCounty.toLowerCase())
+  );
+
+  const handleImagePick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
+      Alert.alert('Permission Denied', 'Please allow access to your photo library.');
       return;
     }
 
@@ -38,455 +48,364 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  // Handle bio change
   const handleBioChange = (text: string) => {
-    if (text.length <= 200) {
+    if (text.length <= 150) {
       setBio(text);
-      setCharactersLeft(200 - text.length);
+      setCharactersLeft(150 - text.length);
     }
   };
 
-  // Handle saving profile
   const handleSaveProfile = async () => {
     try {
-      // Update user profile with Clerk (critical for navigation)
       await user?.update({
         firstName: displayName.split(' ')[0],
         lastName: displayName.split(' ').slice(1).join(' '),
       });
 
-      // If there's a profile image, upload it separately
       if (profileImage) {
         await user?.setProfileImage({
           file: { uri: profileImage } as any,
         });
       }
 
-      // Store additional metadata in Clerk (critical for navigation)
       await user?.setPublicMetadata({
-        role: role,
         location: location,
         bio: bio,
         completedProfile: true,
-        usernameSet: true,
-        joinedVia: 'email', // This would be dynamic based on auth method
       });
 
-      // Sync profile data with backend API (non-critical for navigation)
+      // Sync with backend (non-blocking)
       try {
         const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
-        const profileResponse = await fetch(`${baseUrl}/api/profile`, {
+        await fetch(`${baseUrl}/api/profile`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${await user?.getIdToken()}`,
           },
-          body: JSON.stringify({
-            bio: bio,
-            location: location,
-            role: role
-          }),
+          body: JSON.stringify({ bio, location }),
         });
-
-        if (!profileResponse.ok) {
-          console.warn('Warning: Could not sync profile with backend');
-        }
-      } catch (error) {
-        console.warn('Warning: Could not sync profile with backend', error);
+      } catch (e) {
+        console.warn('Backend sync failed', e);
       }
 
-      // Navigate to agricultural profile setup (should happen regardless of backend sync)
-      router.push('/auth/agricultural-profile');
+      router.push('/(tabs)/feed');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'An error occurred while saving your profile');
+      Alert.alert('Error', error.message || 'Failed to save profile');
     }
   };
 
-  // Handle skipping profile setup
-  const handleSkipProfile = () => {
+  const handleSkip = () => {
     router.push('/(tabs)/feed');
   };
 
-  // Role options
-  const roles = [
-    { value: 'farmer', label: 'Farmer' },
-    { value: 'buyer', label: 'Buyer' },
-    { value: 'expert', label: 'Expert' },
-  ];
-
-  // Render role selector
-  const renderRoleSelector = () => {
-    const selectedRole = roles.find(r => r.value === role)?.label || 'Farmer';
-
-    return (
-      <View>
-        <Text style={styles.label}>Role</Text>
-        <TouchableOpacity
-          style={styles.selectContainer}
-          onPress={() => setShowRoleModal(true)}
-        >
-          <Text style={styles.selectText}>{selectedRole}</Text>
-          <Ionicons name="chevron-down" size={20} color="#757575" />
-        </TouchableOpacity>
-
-        {/* Role selection modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showRoleModal}
-          onRequestClose={() => setShowRoleModal(false)}
-        >
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setShowRoleModal(false)}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Role</Text>
-              {roles.map((item) => (
-                <Pressable
-                  key={item.value}
-                  style={({ pressed }) => [
-                    styles.modalOption,
-                    pressed && styles.modalOptionPressed,
-                  ]}
-                  onPress={() => {
-                    setRole(item.value);
-                    setShowRoleModal(false);
-                  }}
-                >
-                  <Text style={styles.modalOptionText}>{item.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </Pressable>
-        </Modal>
-      </View>
-    );
-  };
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Complete Your Profile</Text>
-        <Text style={styles.subtitle}>Step 2 of 2</Text>
-      </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>Complete Your Profile</Text>
+      <Text style={styles.step}>Step 2 of 2</Text>
 
-      <View style={styles.profileImageContainer}>
-        <TouchableOpacity onPress={pickImage} style={styles.imagePlaceholder}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.profileImage} />
-          ) : (
-            <Ionicons name="camera" size={30} color="#4CAF50" style={styles.cameraIcon} />
-          )}
-        </TouchableOpacity>
-        <Text style={styles.addPhotoText}>Add Photo</Text>
-        <Text style={styles.photoHint}>Click to upload</Text>
-      </View>
+      {/* Photo Upload */}
+      <TouchableOpacity style={styles.photoContainer} onPress={handleImagePick}>
+        {profileImage ? (
+          <View style={styles.photoWrapper}>
+            <View style={styles.profileImage}>
+              <Ionicons name="person" size={50} color="#757575" />
+            </View>
+            <View style={styles.editBadge}>
+              <Ionicons name="camera" size={16} color="#FFFFFF" />
+            </View>
+          </View>
+        ) : (
+          <View style={styles.photoPlaceholder}>
+            <Ionicons name="camera" size={32} color="#2E7D32" />
+            <Text style={styles.addPhotoText}>Add Photo</Text>
+            <Text style={styles.optionalText}>(Optional)</Text>
+          </View>
+        )}
+      </TouchableOpacity>
 
-      <View style={styles.formSection}>
+      {/* Display Name */}
+      <View style={styles.field}>
         <Text style={styles.label}>Display Name</Text>
         <TextInput
-          style={styles.textInput}
+          style={styles.input}
           value={displayName}
           onChangeText={setDisplayName}
-          placeholder="John Mwangi"
+          placeholder="Your display name"
+          placeholderTextColor="#757575"
         />
-        <Text style={styles.hint}>Pre-filled from signup</Text>
       </View>
 
-      <View style={styles.formSection}>
+      {/* Bio */}
+      <View style={styles.field}>
         <Text style={styles.label}>Bio (Optional)</Text>
         <TextInput
-          style={[styles.textArea, { height: 100 }]}
+          style={[styles.input, styles.textArea]}
           value={bio}
           onChangeText={handleBioChange}
-          placeholder="Farmer in Nakuru, 8 yrs experience in dairy..."
+          placeholder="Tell us about yourself..."
+          placeholderTextColor="#757575"
           multiline
+          numberOfLines={4}
           textAlignVertical="top"
         />
-        <Text style={styles.characterCount}>{charactersLeft}/200 characters</Text>
+        <Text style={styles.charCount}>{charactersLeft}/150 characters</Text>
       </View>
 
-      {renderRoleSelector()}
-
-      <View style={styles.formSection}>
+      {/* Location */}
+      <View style={styles.field}>
         <Text style={styles.label}>Location</Text>
         <TouchableOpacity
           style={styles.selectContainer}
           onPress={() => setShowLocationModal(true)}
         >
-          <Text style={[styles.selectText, !location && styles.placeholderText]}>
-            {location || 'Nakuru, Kenya'}
+          <Ionicons name="location" size={20} color="#757575" style={styles.selectIcon} />
+          <Text style={[styles.selectText, !location && styles.placeholder]}>
+            {location || 'Select your location'}
           </Text>
-          <Ionicons name="locate" size={20} color="#757575" />
-        </TouchableOpacity>
-
-        {/* Location selection modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showLocationModal}
-          onRequestClose={() => setShowLocationModal(false)}
-        >
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setShowLocationModal(false)}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Enter Location</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={location}
-                onChangeText={setLocation}
-                placeholder="City, Country"
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setShowLocationModal(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.saveButton]}
-                  onPress={() => setShowLocationModal(false)}
-                >
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Pressable>
-        </Modal>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSaveProfile}
-        >
-          <Text style={styles.saveButtonText}>Save & Continue</Text>
-          <Ionicons name="checkmark-circle" size={20} color="white" style={styles.checkIcon} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={handleSkipProfile}
-        >
-          <Text style={styles.skipButtonText}>Skip for now</Text>
-          <Text style={styles.skipButtonText}>→ Dashboard</Text>
+          <Ionicons name="chevron-down" size={20} color="#757575" />
         </TouchableOpacity>
       </View>
+
+      {/* Skip Link */}
+      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+        <Ionicons name="flash" size={18} color="#2E7D32" />
+        <Text style={styles.skipText}>Skip for now</Text>
+      </TouchableOpacity>
+
+      {/* Save Button */}
+      <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
+        <Text style={styles.saveButtonText}>Save & Continue</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.footer}>You can always edit later in Profile Settings</Text>
+
+      {/* Location Modal */}
+      <Modal
+        visible={showLocationModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowLocationModal(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Location</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search county..."
+              placeholderTextColor="#757575"
+              value={searchCounty}
+              onChangeText={setSearchCounty}
+            />
+            <ScrollView style={styles.countyList}>
+              {filteredCounties.map((county) => (
+                <Pressable
+                  key={county}
+                  style={styles.countyItem}
+                  onPress={() => {
+                    setLocation(county);
+                    setShowLocationModal(false);
+                    setSearchCounty('');
+                  }}
+                >
+                  <Text style={styles.countyText}>{county}</Text>
+                  {location === county && (
+                    <Ionicons name="checkmark" size={20} color="#2E7D32" />
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    padding: 20,
+    flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 30,
+  content: {
+    padding: 24,
+    paddingTop: 40,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#222222',
     textAlign: 'center',
-    marginBottom: 5,
   },
-  subtitle: {
-    fontSize: 16,
+  step: {
+    fontSize: 14,
     color: '#757575',
     textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 32,
   },
-  profileImageContainer: {
+  photoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
   },
-  imagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#2E7D32',
-    borderStyle: 'dashed',
+  photoWrapper: {
+    position: 'relative',
   },
   profileImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
+    backgroundColor: '#F5F7FA',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  cameraIcon: {
-    alignSelf: 'center',
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#2E7D32',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F5F7FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
   },
   addPhotoText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#222222',
-    marginTop: 10,
-  },
-  photoHint: {
+    marginTop: 8,
     fontSize: 14,
+    color: '#2E7D32',
+    fontWeight: '500',
+  },
+  optionalText: {
+    fontSize: 12,
     color: '#757575',
   },
-  formSection: {
+  field: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#222222',
     marginBottom: 8,
   },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+  input: {
+    height: 56,
+    backgroundColor: '#F5F7FA',
     borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: '#F9F9F9',
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: '#F9F9F9',
-    textAlignVertical: 'top',
-  },
-  hint: {
-    fontSize: 14,
-    color: '#757575',
-    marginTop: 5,
-  },
-  characterCount: {
-    fontSize: 14,
-    color: '#757575',
-    textAlign: 'right',
-    marginTop: 5,
-  },
-  selectContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: '#F9F9F9',
-  },
-  selectText: {
+    paddingHorizontal: 16,
     fontSize: 16,
     color: '#222222',
   },
-  placeholderText: {
-    color: '#9E9E9E',
+  textArea: {
+    height: 100,
+    paddingTop: 16,
   },
-  buttonContainer: {
-    marginTop: 30,
+  charCount: {
+    fontSize: 12,
+    color: '#757575',
+    textAlign: 'right',
+    marginTop: 4,
   },
-  saveButton: {
+  selectContainer: {
+    height: 56,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 12,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: '#2E7D32',
-    marginBottom: 15,
   },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    marginRight: 8,
+  selectIcon: {
+    marginRight: 12,
   },
-  checkIcon: {
-    marginTop: 2,
+  selectText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#222222',
+  },
+  placeholder: {
+    color: '#757575',
   },
   skipButton: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 16,
   },
-  skipButtonText: {
-    fontSize: 16,
+  skipText: {
+    marginLeft: 8,
+    fontSize: 14,
     color: '#2E7D32',
     fontWeight: '500',
   },
-  modalOverlay: {
-    flex: 1,
+  saveButton: {
+    height: 56,
+    backgroundColor: '#2E7D32',
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  footer: {
+    fontSize: 12,
+    color: '#757575',
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  modalOverlay: {
+    flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
     maxHeight: '70%',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontWeight: '700',
     color: '#222222',
+    marginBottom: 16,
   },
-  modalOption: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  modalOptionPressed: {
-    backgroundColor: '#F5F5F5',
-  },
-  modalOptionText: {
+  searchInput: {
+    height: 48,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 12,
+    paddingHorizontal: 16,
     fontSize: 16,
-    color: '#222222',
+    marginBottom: 16,
   },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 15,
+  countyList: {
+    maxHeight: 300,
   },
-  modalButtons: {
+  countyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 15,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
     alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
-  cancelButton: {
-    backgroundColor: '#F5F5F5',
-    marginRight: 5,
-  },
-  saveButton: {
-    backgroundColor: '#2E7D32',
-    marginLeft: 5,
-  },
-  cancelButtonText: {
+  countyText: {
+    fontSize: 16,
     color: '#222222',
-    fontWeight: '500',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '500',
   },
 });

@@ -67,9 +67,8 @@ interface Post {
 
 interface ReactionType {
   name: string;
-  icon: string;
+  icon: string | any;
   color: string;
-  emoji: string;
 }
 
 interface Story {
@@ -83,12 +82,175 @@ interface Story {
   timestamp?: string;
 }
 
+// Mock data - defined at module level for immediate availability
+const mockPostsData: Post[] = [
+  {
+    id: 1,
+    author: {
+      name: 'John Kariuki',
+      avatar: 'https://via.placeholder.com/48x48',
+      location: 'Nakuru County',
+      role: 'Farmer',
+      verified: true
+    },
+    content: 'Just harvested 50 bags of organic maize! Quality produce available for sale.',
+    image: 'https://images.unsplash.com/photo-1595280151135-7ae8f7d55681?w=600',
+    reactions: {
+      like: 42,
+      celebrate: 5,
+      love: 3,
+      insightful: 2,
+      funny: 1
+    },
+    totalReactions: 53,
+    comments: [
+      {
+        id: 1,
+        author: { name: 'Mary Wanjiru', avatar: 'https://via.placeholder.com/24x24' },
+        content: 'Congratulations on the successful harvest! How was the weather this season?',
+        likes: 2,
+        timestamp: '1 hour ago',
+        replies: 2
+      },
+      {
+        id: 2,
+        author: { name: 'Samuel Ochieng', avatar: 'https://via.placeholder.com/24x24' },
+        content: 'Would love to place a bulk order for restaurant supply. What pricing do you offer?',
+        likes: 1,
+        timestamp: '30 minutes ago',
+        replies: 0
+      }
+    ],
+    totalComments: 18,
+    timestamp: '2 hours ago',
+    type: 'harvest',
+    hashtags: ['#maize', '#organic', '#harvest', '#sustainable', '#farming'],
+    isTrending: true,
+    isFollowing: true
+  },
+  {
+    id: 2,
+    author: {
+      name: 'Agricultural Jobs Kenya',
+      avatar: 'https://via.placeholder.com/48x48',
+      location: 'Nationwide',
+      role: 'Employer',
+      verified: true
+    },
+    content: 'Hiring experienced dairy farm manager for large-scale operation in Kiambu County. Must have minimum 3 years experience in dairy farming operations.',
+    reactions: {
+      like: 28,
+      celebrate: 8,
+      love: 12,
+      insightful: 3,
+      funny: 0
+    },
+    totalReactions: 51,
+    comments: [
+      {
+        id: 1,
+        author: { name: 'James Maina', avatar: 'https://via.placeholder.com/24x24' },
+        content: 'This is a great opportunity! What are the key responsibilities?',
+        likes: 3,
+        timestamp: '45 minutes ago',
+        replies: 1
+      }
+    ],
+    totalComments: 12,
+    timestamp: '5 hours ago',
+    type: 'job',
+    hashtags: ['#jobs', '#dairy', '#farming', '#employment'],
+    jobDetails: {
+      title: 'Dairy Farm Manager',
+      salary: 'KSh 80,000 - 120,000',
+      applyLink: 'https://example.com/apply'
+    }
+  },
+  {
+    id: 3,
+    author: {
+      name: 'Fresh Produce Market',
+      avatar: 'https://via.placeholder.com/48x48',
+      location: 'Nairobi',
+      role: 'Seller',
+      verified: false
+    },
+    content: 'Fresh organic tomatoes available at wholesale prices. Direct from farm to market, no middlemen. Perfect for restaurants and retail stores.',
+    images: [
+      'https://images.unsplash.com/photo-1615485291234-01b708f19c1b?w=300',
+      'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300',
+      'https://images.unsplash.com/photo-1602192404983-d9b0f8c1d00a?w=300'
+    ],
+    reactions: {
+      like: 15,
+      celebrate: 2,
+      love: 1,
+      insightful: 5,
+      funny: 0
+    },
+    totalReactions: 23,
+    comments: [],
+    totalComments: 8,
+    timestamp: '8 hours ago',
+    type: 'marketplace',
+    hashtags: ['#vegetables', '#supplier', '#organic', '#wholesale'],
+    marketplaceDetails: {
+      price: 350,
+      condition: 'New',
+      buyLink: 'https://example.com/buy'
+    }
+  },
+  {
+    id: 4,
+    author: {
+      name: 'Dr. Sarah Kimani',
+      avatar: 'https://via.placeholder.com/48x48',
+      location: 'Nairobi',
+      role: 'Agricultural Expert',
+      verified: true
+    },
+    content: 'Pest management tips for small-scale farmers: Early detection is key to preventing crop losses. Here are 5 essential strategies every farmer should know...',
+    reactions: {
+      like: 67,
+      celebrate: 12,
+      love: 8,
+      insightful: 25,
+      funny: 3
+    },
+    totalReactions: 115,
+    comments: [
+      {
+        id: 1,
+        author: { name: 'David Kimani', avatar: 'https://via.placeholder.com/24x24' },
+        content: 'This is very helpful! Thanks for sharing. Could you elaborate on the biological control methods?',
+        likes: 5,
+        timestamp: '3 hours ago',
+        replies: 3
+      }
+    ],
+    totalComments: 24,
+    timestamp: '12 hours ago',
+    type: 'advice',
+    hashtags: ['#farming', '#pest-management', '#expert', '#agriculture', '#tips'],
+    isRecommended: true
+  }
+];
+
 export default function FeedScreen() {
   const router = useRouter();
-  const { user, isLoaded: isLoading } = useUser();
-  const { isSignedIn } = useAuth();
-  const userId = user?.id;
+  // Simplified auth check - comment out for now to show mock data
+  // const { user, isLoaded: isLoading } = useUser();
+  // const { isSignedIn } = useAuth();
+  // const userId = user?.id;
 
+  // For now, show feed without auth check to display mock data
+  const isLoading = false;
+  const isSignedIn = false;
+  const userId = 'demo-user';
+  const user: any = { firstName: 'Demo', imageUrl: 'https://via.placeholder.com/60x60' };
+
+  /*
+  // ORIGINAL AUTH CODE - uncomment when backend is ready
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -115,7 +277,9 @@ export default function FeedScreen() {
       router.replace('/welcome');
     }
   }, [userId, isSignedIn, isLoading, router]);
-  const [posts, setPosts] = useState<Post[]>([]);
+  */
+
+  const [posts, setPosts] = useState<Post[]>(mockPostsData); // Start with mock data immediately
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -134,28 +298,35 @@ export default function FeedScreen() {
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [savedPosts, setSavedPosts] = useState<Set<number>>(new Set());
 
-  // Professional color palette
+  // Professional color palette - MkulimaNet Mobile Spec
   const colors = {
     // Core Brand Colors
-    primaryGreen: '#2E7D32',       // Primary green for active states
-    secondaryGreen: '#4CAF50',    // Secondary green for accents
-    lightGreen: '#E8F5E9',        // Light green for backgrounds
-    white: '#FFFFFF',             // Primary background
-    offWhite: '#FAFAFA',          // Very light background
-    lightGray: '#F5F7FA',         // Light gray for depth
+    primaryGreen: '#2E7D32',       // Buttons, active states, reactions
+    secondaryGreen: '#4CAF50',     // Icons, verified badges
+    lightGreen: '#E8F5E9',         // Story rings, highlights
+    white: '#FFFFFF',              // Background
+    offWhite: '#FAFAFA',           // Very light background
     
     // Text Hierarchy
-    primaryText: '#222222',       // Dark charcoal
-    secondaryText: '#333333',     // Post text
-    metadataText: '#757575',       // Timestamp and metadata
-    lightText: '#9E9E9E',         // Inactive icons
-    placeholderText: '#BDBDBD',   // Very light gray
+    darkCharcoal: '#222222',        // Usernames, headings
+    primaryText: '#222222',        // Primary text (alias)
+    postText: '#333333',           // Post content
+    secondaryText: '#333333',       // Secondary text (alias)
+    metadataGray: '#757575',       // Timestamps, captions
+    metadataText: '#757575',       // Metadata text (alias)
+    inactiveGray: '#9E9E9E',       // Inactive icons
+    lightText: '#9E9E9E',          // Light text (alias)
+    placeholderGray: '#BDBDBD',    // Input placeholders
+    placeholderText: '#BDBDBD',    // Placeholder text (alias)
     
     // UI Elements
-    borderColor: '#F0F0F0',        // Light border
-    shadowColor: '#000000',       // Shadow
-    disabled: '#9E9E9E',          // Disabled state
-    error: '#EF4444',             // Error state
+    borderGray: '#E0E0E0',         // Dividers
+    borderColor: '#F0F0F0',        // Border color (alias)
+    inputBackground: '#F5F7FA',    // Input backgrounds
+    lightGray: '#F5F7FA',          // Light gray (alias)
+    shadowColor: '#000000',
+    disabled: '#9E9E9E',
+    error: '#EF4444',
   };
 
   // Filter options
@@ -163,11 +334,11 @@ export default function FeedScreen() {
 
   // Mock reactions data for demonstration
   const reactionTypes: ReactionType[] = [
-    { name: 'like', icon: 'thumb-up', color: colors.primaryGreen, emoji: '👍' },
-    { name: 'celebrate', icon: 'emoji-events', color: '#F59E0B', emoji: '🎉' },
-    { name: 'love', icon: 'favorite', color: '#EF4444', emoji: '❤️' },
-    { name: 'insightful', icon: 'lightbulb', color: '#3B82F6', emoji: '💡' },
-    { name: 'funny', icon: 'sentiment-very-satisfied', color: '#8B5CF6', emoji: '😂' },
+    { name: 'like', icon: 'thumb-up', color: colors.primaryGreen },
+    { name: 'celebrate', icon: 'emoji-events', color: '#F59E0B' },
+    { name: 'love', icon: 'favorite', color: '#EF4444' },
+    { name: 'insightful', icon: 'lightbulb', color: '#3B82F6' },
+    { name: 'funny', icon: 'sentiment-very-satisfied', color: '#8B5CF6' },
   ];
 
   // Mock stories data
@@ -211,193 +382,47 @@ export default function FeedScreen() {
     setStories(mockStories);
   }, [user?.imageUrl]);
 
-  // Mock data for initial load - in real app this would come from backend
+  // Fetch posts from API with fallback to mock data
   useEffect(() => {
-    // Simulate API call to fetch posts
-    setTimeout(() => {
-      const mockPosts: Post[] = [
-        {
-          id: 1,
-          author: {
-            name: 'John Kariuki',
-            avatar: 'https://via.placeholder.com/48x48',
-            location: 'Nakuru County',
-            role: 'Farmer',
-            verified: true
-          },
-          content: 'Just harvested 50 bags of organic maize! Quality produce available for sale. Grown using sustainable farming practices and certified organic. The yield this season has been exceptional with minimal pest damage and excellent weather conditions throughout the growing period.',
-          image: 'https://images.unsplash.com/photo-1595280151135-7ae8f7d55681?w=600',
-          reactions: {
-            like: 42,
-            celebrate: 5,
-            love: 3,
-            insightful: 2,
-            funny: 1
-          },
-          totalReactions: 53,
-          comments: [
-            {
-              id: 1,
-              author: { name: 'Mary Wanjiru', avatar: 'https://via.placeholder.com/24x24' },
-              content: 'Congratulations on the successful harvest! How was the weather this season?',
-              likes: 2,
-              timestamp: '1 hour ago',
-              replies: 2
-            },
-            {
-              id: 2,
-              author: { name: 'Samuel Ochieng', avatar: 'https://via.placeholder.com/24x24' },
-              content: 'Would love to place a bulk order for restaurant supply. What pricing do you offer?',
-              likes: 1,
-              timestamp: '30 minutes ago',
-              replies: 0
-            }
-          ],
-          totalComments: 18,
-          timestamp: '2 hours ago',
-          type: 'harvest',
-          hashtags: ['#maize', '#organic', '#harvest', '#sustainable', '#farming'],
-          isTrending: true,
-          isFollowing: true
-        },
-        {
-          id: 2,
-          author: {
-            name: 'Agricultural Jobs Kenya',
-            avatar: 'https://via.placeholder.com/48x48',
-            location: 'Nationwide',
-            role: 'Employer',
-            verified: true
-          },
-          content: 'Hiring experienced dairy farm manager for large-scale operation in Kiambu County. Must have minimum 3 years experience in dairy farming operations.',
-          reactions: {
-            like: 28,
-            celebrate: 8,
-            love: 12,
-            insightful: 3,
-            funny: 0
-          },
-          totalReactions: 51,
-          comments: [
-            {
-              id: 1,
-              author: { name: 'James Maina', avatar: 'https://via.placeholder.com/24x24' },
-              content: 'This is a great opportunity! What are the key responsibilities?',
-              likes: 3,
-              timestamp: '45 minutes ago',
-              replies: 1
-            }
-          ],
-          totalComments: 12,
-          timestamp: '5 hours ago',
-          type: 'job',
-          hashtags: ['#jobs', '#dairy', '#farming', '#employment'],
-          jobDetails: {
-            title: 'Dairy Farm Manager',
-            salary: 'KSh 80,000 - 120,000',
-            applyLink: 'https://example.com/apply'
-          }
-        },
-        {
-          id: 3,
-          author: {
-            name: 'Fresh Produce Market',
-            avatar: 'https://via.placeholder.com/48x48',
-            location: 'Nairobi',
-            role: 'Seller',
-            verified: false
-          },
-          content: 'Fresh organic tomatoes available at wholesale prices. Direct from farm to market, no middlemen. Perfect for restaurants and retail stores.',
-          images: [
-            'https://images.unsplash.com/photo-1615485291234-01b708f19c1b?w=300',
-            'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300',
-            'https://images.unsplash.com/photo-1602192404983-d9b0f8c1d00a?w=300'
-          ],
-          reactions: {
-            like: 15,
-            celebrate: 2,
-            love: 1,
-            insightful: 5,
-            funny: 0
-          },
-          totalReactions: 23,
-          comments: [],
-          totalComments: 8,
-          timestamp: '8 hours ago',
-          type: 'marketplace',
-          hashtags: ['#vegetables', '#supplier', '#organic', '#wholesale'],
-          marketplaceDetails: {
-            price: 350,
-            condition: 'New',
-            buyLink: 'https://example.com/buy'
-          }
-        },
-        {
-          id: 4,
-          author: {
-            name: 'Dr. Sarah Kimani',
-            avatar: 'https://via.placeholder.com/48x48',
-            location: 'Nairobi',
-            role: 'Agricultural Expert',
-            verified: true
-          },
-          content: 'Pest management tips for small-scale farmers: Early detection is key to preventing crop losses. Here are 5 essential strategies every farmer should know...',
-          reactions: {
-            like: 67,
-            celebrate: 12,
-            love: 8,
-            insightful: 25,
-            funny: 3
-          },
-          totalReactions: 115,
-          comments: [
-            {
-              id: 1,
-              author: { name: 'David Kimani', avatar: 'https://via.placeholder.com/24x24' },
-              content: 'This is very helpful! Thanks for sharing. Could you elaborate on the biological control methods?',
-              likes: 5,
-              timestamp: '3 hours ago',
-              replies: 3
-            }
-          ],
-          totalComments: 24,
-          timestamp: '12 hours ago',
-          type: 'advice',
-          hashtags: ['#farming', '#pest-management', '#expert', '#agriculture', '#tips'],
-          isRecommended: true
+    const fetchPostsData = async () => {
+      try {
+        const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
+        const response = await fetch(`${baseUrl}/api/posts`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setPosts(data);
         }
-      ];
-      setPosts(mockPosts);
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const fetchPosts = async () => {
-    setLoading(true);
-    try {
-      // Fetch posts from backend API
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com'}/api/posts`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setPosts(data); // Use actual API data instead of mock
-      } else {
-        // Fallback to mock data if API fails
-        console.warn('Failed to fetch posts from API, using mock data');
-        // Keep the existing mock data as fallback
+        // If API fails, we already have mockPostsData displayed
+      } catch (error) {
+        console.warn('API fetch failed, keeping mock data:', error);
+        // Keep the mockPostsData that are already displayed
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-      // Fallback to mock data if API fails
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    
+    fetchPostsData();
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchPosts();
-    setRefreshing(false);
+    try {
+      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/api/posts`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(data);
+      } else {
+        setPosts(mockPostsData)
+      }
+    } catch (error) {
+      console.warn('API refresh failed, using mock data:', error);
+      setPosts(mockPostsData)
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleReaction = (postId: number, reactionType: keyof ReactionCounts) => {
@@ -590,7 +615,7 @@ export default function FeedScreen() {
               style={styles.reactionOption}
               onPress={() => handleReaction(selectedPostId!, reaction.name as keyof ReactionCounts)}
             >
-              <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
+              <MaterialIcons name={reaction.icon as any} size={24} color={reaction.color} />
               <Text style={[styles.reactionLabel, { color: colors.metadataText }]}>{reaction.name}</Text>
             </TouchableOpacity>
           ))}
@@ -955,7 +980,7 @@ export default function FeedScreen() {
               }}
             >
               <MaterialIcons 
-                name={reaction.icon} 
+                name={reaction.icon as any} 
                 size={22} 
                 color={colors.lightText} 
               />
@@ -1149,6 +1174,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // Header - Mobile Spec: Logo left, notification/message/profile icons right
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1156,11 +1182,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     height: 64,
+    backgroundColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
     borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   leftHeader: {
     flex: 1,
@@ -1168,7 +1196,10 @@ const styles = StyleSheet.create({
   },
   rightHeader: {
     flex: 1,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 16,
   },
   searchContainer: {
     flex: 2,
@@ -1211,13 +1242,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Stories Row Styles
+  // Stories Row Styles - Mobile Spec: Height 100px, horizontal scroll
   storiesContainer: {
-    height: 90,
+    height: 100,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#F0F0F0',
   },
   storiesContent: {
     paddingRight: 16,
@@ -1225,14 +1256,14 @@ const styles = StyleSheet.create({
   storyItem: {
     width: 70,
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 12,
   },
   storyRing: {
     width: 64,
     height: 64,
     borderRadius: 32,
     padding: 2,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   unviewedStoryRing: {
     backgroundColor: '#2E7D32',
@@ -1286,10 +1317,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   unviewedStoryUsername: {
-    color: '#333333',
+    color: '#222222',
   },
   viewedStoryUsername: {
-    color: '#999999',
+    color: '#9E9E9E',
   },
   
   // Story Viewer Styles
@@ -1380,16 +1411,18 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   
-  // Post Card
+  // Post Card - Mobile Spec: Full width, white background, border radius 12px
   postCard: {
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 8,
+    marginBottom: 12,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   
   // Special Badges
@@ -1432,12 +1465,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Post Header
+  // Post Header - Mobile Spec: 48px avatar, username bold, verified badge green
   postHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
+    height: 56,
   },
   authorInfo: {
     flexDirection: 'row',
@@ -1461,6 +1495,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
+    backgroundColor: '#2E7D32',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1470,7 +1505,8 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 4,
+    color: '#222222',
+    marginBottom: 2,
   },
   postMeta: {
     flexDirection: 'row',
@@ -1478,20 +1514,23 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
+    color: '#757575',
     marginRight: 4,
   },
   location: {
     fontSize: 12,
+    color: '#2E7D32',
     marginLeft: 2,
   },
   
-  // Post Content
+  // Post Content - Mobile Spec: 16px text, line height 1.5, hashtags green
   postContent: {
     marginBottom: 12,
   },
   postText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333333',
     marginBottom: 12,
   },
   hashtagsContainer: {
@@ -1500,14 +1539,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   hashtag: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
+    color: '#2E7D32',
   },
   
-  // Media
+  // Media - Mobile Spec: Single image 200px height
   postImage: {
     width: '100%',
     height: 200,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   imageGridContainer: {
     marginBottom: 12,
@@ -1580,42 +1622,53 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   
-  // Stats Bar
+  // Stats Bar - Mobile Spec: 32px height, 14px text, reaction icons left, comment count right
   statsBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 8,
+    height: 32,
     borderTopWidth: 1,
     borderBottomWidth: 1,
+    borderColor: '#F0F0F0',
     marginBottom: 8,
   },
   reactionsPreview: {
     flexDirection: 'row',
-    marginRight: 8,
+    alignItems: 'center',
   },
   reactionCount: {
-    fontSize: 13,
-    marginRight: 12,
+    fontSize: 14,
+    color: '#757575',
+    marginLeft: 4,
   },
   commentCount: {
-    fontSize: 13,
+    fontSize: 14,
+    color: '#757575',
   },
   
-  // Action Buttons
+  // Action Buttons - Mobile Spec: 56px height, 24px icons, equal spacing
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 8,
+    height: 56,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
     marginBottom: 8,
   },
   actionButton: {
     alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
   },
   actionText: {
     fontSize: 13,
     marginTop: 4,
     fontWeight: '500',
+    color: '#757575',
   },
   
   // Save & Share
@@ -1804,18 +1857,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+  // Comment Input - Mobile Spec: 48px height, rounded 24px, light gray background
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderTopWidth: 1,
+    borderColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
   },
   commentInput: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     fontSize: 14,
+    backgroundColor: '#F5F7FA',
+    minHeight: 48,
   },
   sendButton: {
     marginLeft: 8,

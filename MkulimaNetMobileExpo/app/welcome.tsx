@@ -1,33 +1,62 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Dimensions, 
+  FlatList,
+  SafeAreaView
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
+
+const slides = [
+  {
+    id: '1',
+    icon: 'leaf',
+    heading: 'Welcome to MkulimaNet',
+    subheading: "Kenya's largest agricultural network",
+    description: 'Connect with farmers, buyers, and experts across the country',
+    features: []
+  },
+  {
+    id: '2',
+    icon: 'cart',
+    heading: 'Marketplace',
+    subheading: 'Buy and sell farm products',
+    features: ['Livestock', 'Crops', 'Equipment', 'Fertilizers', 'Seeds', 'Tools']
+  },
+  {
+    id: '3',
+    icon: 'briefcase',
+    heading: 'Job Opportunities',
+    subheading: 'Find agricultural work',
+    features: ['Farm Manager', 'Veterinarian', 'Harvest Labor', 'Equipment Op', 'Agronomist', 'Sales Rep']
+  }
+];
 
 export default function WelcomeScreen() {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
 
-  const slides = [
-    {
-      title: 'Welcome to MkulimaNet',
-      subtitle: 'Kenya\'s largest agricultural network',
-      description: 'Connect with farmers, buyers, and experts across the country',
-      image: '🌾'
-    },
-    {
-      title: 'Smart Marketplace',
-      subtitle: 'Buy and sell agricultural products',
-      description: 'From fresh produce to farm equipment, find what you need',
-      image: '🛍️'
-    },
-    {
-      title: 'Job Opportunities',
-      subtitle: 'Find agricultural work',
-      description: 'Connect with employers and land your next opportunity',
-      image: '💼'
+  const handleNext = () => {
+    if (currentIndex < slides.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      flatListRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true
+      });
+    } else {
+      router.push('/auth/signup');
     }
-  ];
+  };
 
-  const handleGetStarted = () => {
+  const handleSkip = () => {
     router.push('/auth/signup');
   };
 
@@ -35,87 +64,137 @@ export default function WelcomeScreen() {
     router.push('/auth/login');
   };
 
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentIndex(viewableItems[0].index);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50
+  }).current;
+
+  const renderSlide = ({ item }: { item: typeof slides[0] }) => (
+    <View style={styles.slide}>
+      <View style={styles.iconContainer}>
+        <Ionicons name={item.icon as any} size={100} color="#2E7D32" />
+      </View>
+      
+      <Text style={styles.heading}>{item.heading}</Text>
+      <Text style={styles.subheading}>{item.subheading}</Text>
+      
+      {item.features && item.features.length > 0 ? (
+        <View style={styles.featuresContainer}>
+          {item.features.map((feature, index) => (
+            <View key={index} style={styles.featureRow}>
+              <Ionicons name="ellipse" size={6} color="#4CAF50" style={styles.bullet} />
+              <Text style={styles.featureText}>{feature}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.description}>{item.description}</Text>
+      )}
+    </View>
+  );
+
+  const renderDots = () => (
+    <View style={styles.dotsContainer}>
+      {slides.map((_, index) => (
+        <View
+          key={index}
+          style={[
+            styles.dot,
+            index === currentIndex ? styles.activeDot : styles.inactiveDot
+          ]}
+        />
+      ))}
+    </View>
+  );
+
+  const isLastSlide = currentIndex === slides.length - 1;
+
   return (
-    <View style={styles.container}>
-      <ScrollView 
-        style={styles.carousel}
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+        <Text style={styles.skipText}>Skip</Text>
+      </TouchableOpacity>
+
+      <FlatList
+        ref={flatListRef}
+        data={slides}
+        renderItem={renderSlide}
+        keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / 300);
-          setCurrentSlide(index);
-        }}
-        scrollEventThrottle={16}
-      >
-        {slides.map((slide, index) => (
-          <View key={index} style={styles.slide}>
-            <View style={styles.imageContainer}>
-              <Text style={styles.emoji}>{slide.image}</Text>
-            </View>
-            <Text style={styles.title}>{slide.title}</Text>
-            <Text style={styles.subtitle}>{slide.subtitle}</Text>
-            <Text style={styles.description}>{slide.description}</Text>
-          </View>
-        ))}
-      </ScrollView>
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        scrollEnabled={true}
+      />
 
-      <View style={styles.indicatorContainer}>
-        {slides.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.indicator,
-              currentSlide === index && styles.activeIndicator
-            ]}
-          />
-        ))}
-      </View>
+      <View style={styles.bottomContainer}>
+        {renderDots()}
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted}>
-          <Text style={styles.getStartedText}>Get Started</Text>
+        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+          <Text style={styles.nextButtonText}>Get Started</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
-          <Text style={styles.signInText}>Sign In</Text>
-        </TouchableOpacity>
+
+        <View style={styles.signInContainer}>
+          <Text style={styles.signInLabel}>Already have an account? </Text>
+          <TouchableOpacity onPress={handleSignIn}>
+            <Text style={styles.signInText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#FFFFFF',
   },
-  carousel: {
-    flex: 1,
+  skipButton: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    zIndex: 10,
+  },
+  skipText: {
+    fontSize: 16,
+    color: '#2E7D32',
+    fontWeight: '500',
   },
   slide: {
-    width: 300,
-    padding: 40,
-    alignItems: 'center',
+    width: width,
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  imageContainer: {
-    marginBottom: 30,
+  iconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 40,
   },
-  emoji: {
-    fontSize: 80,
-  },
-  title: {
+  heading: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#222222',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#2E7D32',
+  subheading: {
+    fontSize: 16,
+    color: '#757575',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 24,
   },
   description: {
     fontSize: 16,
@@ -123,52 +202,69 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  indicatorContainer: {
+  featuresContainer: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    justifyContent: 'center',
+  },
+  bullet: {
+    marginRight: 8,
+  },
+  featureText: {
+    fontSize: 16,
+    color: '#757575',
+  },
+  bottomContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  dotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
   },
-  indicator: {
+  dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#D1D5DB',
     marginHorizontal: 4,
   },
-  activeIndicator: {
+  activeDot: {
     backgroundColor: '#2E7D32',
-    width: 20,
   },
-  buttonContainer: {
-    padding: 20,
+  inactiveDot: {
+    backgroundColor: '#F5F7FA',
   },
-  getStartedButton: {
+  nextButton: {
     backgroundColor: '#2E7D32',
     borderRadius: 30,
-    padding: 16,
+    height: 56,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
-    shadowColor: '#2E7D32',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
   },
-  getStartedText: {
+  nextButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
-  signInButton: {
-    borderColor: '#2E7D32',
-    borderWidth: 2,
-    borderRadius: 30,
-    padding: 16,
+  signInContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 20,
+  },
+  signInLabel: {
+    fontSize: 15,
+    color: '#757575',
   },
   signInText: {
+    fontSize: 15,
     color: '#2E7D32',
-    fontSize: 16,
     fontWeight: '600',
   },
 });
