@@ -32,8 +32,9 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-green-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white gap-6">
+        <img src="/logo1.jpg" alt="MkulimaNet" className="h-20 w-auto object-contain rounded-xl drop-shadow-lg animate-pulse" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
       </div>
     );
   }
@@ -126,74 +127,80 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Auth Buttons - Top Right */}
-      <div className="absolute top-4 right-4 z-10 flex items-center space-x-4">
-        <Link 
-          href="/auth/login" 
-          className="text-gray-700 hover:text-green-600 font-medium"
-        >
-          Log in
-        </Link>
-        <Link 
-          href="/auth/register" 
-          className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
-        >
-          Register
-        </Link>
-      </div>
-      
-      {/* 1️⃣ HERO SECTION */}
-      <section className="relative bg-gradient-to-br from-green-50 to-green-100 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center">
-            <div className="lg:w-1/2 mb-12 lg:mb-0">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                Connect. Grow. Sell. Work — All in One Agriculture Platform.
-              </h1>
-              <p className="text-lg text-gray-600 mb-10 max-w-xl">
-                MkulimaNet connects farmers, buyers, and employers in one trusted digital ecosystem.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  href="/auth/register"
-                  className="px-8 py-4 bg-green-600 text-white font-medium rounded-lg shadow-lg hover:bg-green-700 transition duration-300 text-center"
-                >
-                  Get Started
-                </Link>
-                <Link
-                  href="/dashboard/feed"
-                  className="px-8 py-4 bg-white text-green-600 font-medium rounded-lg shadow-lg hover:bg-green-50 transition duration-300 text-center border border-green-200"
-                >
-                  Explore Feed
-                </Link>
-              </div>
-            </div>
-            <div className="lg:w-1/2 flex justify-center">
-              <div className="relative">
-                <div className="w-80 h-80 bg-green-200 rounded-full flex items-center justify-center overflow-hidden border-8 border-white shadow-xl">
-                  <img 
-                    src="/home.jpg" 
-                    alt="Agriculture in Kenya" 
-                    className="w-full h-full object-cover"
-                    width={320}
-                    height={320}
-                  />
-                </div>
-                <div className="absolute -bottom-4 -right-4 bg-white rounded-lg shadow-xl p-4 w-48">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 mr-3">
-                      <div className="bg-green-100 p-2 rounded-full">
-                        <Leaf className="h-6 w-6 text-green-600" />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">10,000+</p>
-                      <p className="text-xs text-gray-500">Active Farmers</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+
+      {/* ── TOP NAV ── */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <img src="/logo1.jpg" alt="MkulimaNet" className="h-10 w-auto object-contain" />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/auth/login"
+              className="text-gray-700 hover:text-green-600 font-medium text-sm px-4 py-2 rounded-lg transition-colors"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/auth/register"
+              className="bg-green-600 text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* ── HERO ── */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-50 via-white to-white pt-16 overflow-hidden">
+        {/* subtle background circles */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-green-100 rounded-full opacity-30 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-200 rounded-full opacity-20 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 max-w-2xl mx-auto">
+          {/* Logo — large, centred */}
+          <div className="mb-8 flex items-center justify-center">
+            <img
+              src="/logo1.jpg"
+              alt="MkulimaNet"
+              className="h-28 w-auto object-contain drop-shadow-xl rounded-2xl"
+            />
+          </div>
+
+          {/* tagline */}
+          <p className="text-lg sm:text-xl text-gray-500 mb-10 max-w-md leading-relaxed">
+            Kenya&apos;s trusted platform for farmers, buyers &amp; agri-employers.
+          </p>
+
+          {/* CTA buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
+            <Link
+              href="/auth/register"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 active:scale-95 transition-all text-base"
+            >
+              Get Started <ArrowRight className="h-5 w-5" />
+            </Link>
+            <Link
+              href="/auth/login"
+              className="inline-flex items-center justify-center px-8 py-4 bg-white text-green-700 font-semibold rounded-xl shadow border border-green-200 hover:bg-green-50 active:scale-95 transition-all text-base"
+            >
+              Sign In
+            </Link>
+          </div>
+
+          {/* social proof pill */}
+          <div className="mt-10 inline-flex items-center gap-2 bg-white border border-green-100 shadow-sm rounded-full px-5 py-2 text-sm text-gray-600">
+            <Leaf className="h-4 w-4 text-green-500" />
+            <span><strong className="text-gray-900">10,000+</strong> active farmers across Kenya</span>
+          </div>
+        </div>
+
+        {/* hero image strip */}
+        <div className="relative z-10 mt-16 w-full max-w-4xl mx-auto px-4">
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-100">
+            <img
+              src="/home.jpg"
+              alt="Kenyan farmers using MkulimaNet"
+              className="w-full h-64 sm:h-80 object-cover"
+            />
           </div>
         </div>
       </section>

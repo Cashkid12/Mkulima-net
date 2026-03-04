@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
 const Wallet = require('../models/Wallet');
 const Transaction = require('../models/Transaction');
 const Order = require('../models/Order');
@@ -18,7 +17,7 @@ const generateReference = (type) => {
 // @route   GET /api/wallet
 // @desc    Get user wallet info
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     let wallet = await Wallet.findOne({ user: req.user.id });
     
@@ -54,7 +53,7 @@ router.get('/', auth, async (req, res) => {
 // @route   GET /api/wallet/transactions
 // @desc    Get user transactions
 // @access  Private
-router.get('/transactions', auth, async (req, res) => {
+router.get('/transactions', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -81,7 +80,7 @@ router.get('/transactions', auth, async (req, res) => {
 // @route   POST /api/wallet/deposit
 // @desc    Add money to wallet
 // @access  Private
-router.post('/deposit', auth, async (req, res) => {
+router.post('/deposit', async (req, res) => {
   try {
     const { amount, paymentMethod, phoneNumber } = req.body;
     
@@ -161,7 +160,7 @@ router.post('/deposit', auth, async (req, res) => {
 // @route   POST /api/wallet/withdraw
 // @desc    Withdraw money from wallet
 // @access  Private
-router.post('/withdraw', auth, async (req, res) => {
+router.post('/withdraw', async (req, res) => {
   try {
     const { amount, destination, pin } = req.body;
     
@@ -269,7 +268,7 @@ router.post('/withdraw', auth, async (req, res) => {
 // @route   POST /api/wallet/transfer
 // @desc    Transfer money to another user
 // @access  Private
-router.post('/transfer', auth, async (req, res) => {
+router.post('/transfer', async (req, res) => {
   try {
     const { amount, recipientAccount, description, pin } = req.body;
     
@@ -406,7 +405,7 @@ router.post('/transfer', auth, async (req, res) => {
 // @route   GET /api/wallet/balance
 // @desc    Get wallet balance
 // @access  Private
-router.get('/balance', auth, async (req, res) => {
+router.get('/balance', async (req, res) => {
   try {
     const wallet = await Wallet.findOne({ user: req.user.id });
     
@@ -436,7 +435,7 @@ router.get('/balance', auth, async (req, res) => {
 // @route   POST /api/wallet/pin
 // @desc    Set transaction PIN
 // @access  Private
-router.post('/pin', auth, async (req, res) => {
+router.post('/pin', async (req, res) => {
   try {
     const { pin } = req.body;
     

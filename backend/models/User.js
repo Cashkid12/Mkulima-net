@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
+  clerkId: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true
+  },
   firstName: {
     type: String,
     required: true,
@@ -11,28 +17,52 @@ const UserSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  displayName: {
+    type: String,
+    trim: true,
+    default: function() {
+      return this.firstName + ' ' + this.lastName;
+    }
+  },
   username: {
     type: String,
     required: true,
     unique: true,
     trim: true,
-    minlength: 4
+    minlength: 3,
+    maxlength: 30,
+    lowercase: true,
+    match: /^[a-z0-9._]+$/
   },
   email: {
     type: String,
     required: true,
     unique: true,
     lowercase: true,
-    trim: true
+    trim: true,
+    index: true
   },
   phone: {
     type: String,
-    trim: true
+    trim: true,
+    index: true
   },
   password: {
     type: String,
     required: true,
-    minlength: 6
+    minlength: 8
+  },
+  verificationBadges: [{
+    type: String,
+    enum: ['email', 'phone', 'identity', 'business']
+  }],
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
   },
   profilePicture: {
     type: String,
@@ -311,6 +341,14 @@ const UserSchema = new mongoose.Schema({
     measurementUnits: { type: String, enum: ['metric', 'imperial'], default: 'metric' },
     defaultLanding: { type: String, enum: ['dashboard', 'feed', 'marketplace'], default: 'dashboard' }
   }
+}, {
+  timestamps: true
 });
+
+// Indexes
+UserSchema.index({ username: 1 }, { unique: true });
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ clerkId: 1 }, { unique: true, sparse: true });
+UserSchema.index({ phone: 1 });
 
 module.exports = mongoose.model('User', UserSchema);
