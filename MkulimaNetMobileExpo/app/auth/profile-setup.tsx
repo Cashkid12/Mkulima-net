@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal, Pressable, ActivityIndicator } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,6 +24,7 @@ export default function ProfileSetupScreen() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [searchCounty, setSearchCounty] = useState('');
   const [charactersLeft, setCharactersLeft] = useState(150);
+  const [saving, setSaving] = useState(false);
 
   const filteredCounties = kenyaCounties.filter(county =>
     county.toLowerCase().includes(searchCounty.toLowerCase())
@@ -56,17 +57,13 @@ export default function ProfileSetupScreen() {
   };
 
   const handleSaveProfile = async () => {
+    setSaving(true);
     try {
+      // Update Clerk user data
       await user?.update({
         firstName: displayName.split(' ')[0],
         lastName: displayName.split(' ').slice(1).join(' '),
       });
-
-      if (profileImage) {
-        await user?.setProfileImage({
-          file: { uri: profileImage } as any,
-        });
-      }
 
       await user?.setPublicMetadata({
         location: location,
@@ -74,23 +71,28 @@ export default function ProfileSetupScreen() {
         completedProfile: true,
       });
 
-      // Sync with backend (non-blocking)
-      try {
-        const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
-        await fetch(`${baseUrl}/api/profile`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${await user?.getIdToken()}`,
-          },
-          body: JSON.stringify({ bio, location }),
-        });
-      } catch (e) {
-        console.warn('Backend sync failed', e);
+      // Navigate immediately — don't wait for image upload or backend sync
+      router.replace('/(tabs)/feed');
+
+      // Upload profile image in background (non-blocking)
+      if (profileImage) {
+        user?.setProfileImage({ file: { uri: profileImage } as any })
+          .catch(e => console.warn('Profile image upload failed', e));
       }
 
-      router.push('/(tabs)/feed');
+      // Sync with backend in background (non-blocking)
+      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
+      fetch(`${baseUrl}/api/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user?.getIdToken()}`,
+        },
+        body: JSON.stringify({ bio, location }),
+      }).catch(e => console.warn('Backend sync failed', e));
+
     } catch (error: any) {
+      setSaving(false);
       Alert.alert('Error', error.message || 'Failed to save profile');
     }
   };
@@ -174,8 +176,12 @@ export default function ProfileSetupScreen() {
       </TouchableOpacity>
 
       {/* Save Button */}
-      <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
-        <Text style={styles.saveButtonText}>Save & Continue</Text>
+      <TouchableOpacity style={[styles.saveButton, saving && { opacity: 0.7 }]} onPress={handleSaveProfile} disabled={saving}>
+        {saving ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.saveButtonText}>Save &amp; Continue</Text>
+        )}
       </TouchableOpacity>
 
       <Text style={styles.footer}>You can always edit later in Profile Settings</Text>

@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useSignUp, useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function VerifyEmailScreen() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [timer, setTimer] = useState(300); // 5 minutes
+  const [timer, setTimer] = useState(300);
   const [canResend, setCanResend] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const { signUp, setActive } = useSignUp();
   const router = useRouter();
+  const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -33,13 +35,27 @@ export default function VerifyEmailScreen() {
   };
 
   const handleCodeChange = (text: string, index: number) => {
+    // Handle paste of full 6-digit code
+    if (text.length === 6) {
+      const digits = text.split('').slice(0, 6);
+      setCode(digits);
+      inputRefs.current[5]?.focus();
+      return;
+    }
+
     const newCode = [...code];
-    newCode[index] = text;
+    newCode[index] = text.slice(-1); // take last char if somehow > 1
     setCode(newCode);
 
-    // Auto-advance to next input if character is entered
+    // Auto-advance to next input
     if (text && index < 5) {
-      // Focus logic would go here in a real implementation
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (key: string, index: number) => {
+    if (key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
@@ -55,6 +71,7 @@ export default function VerifyEmailScreen() {
       return;
     }
 
+    setVerifying(true);
     try {
       const result = await signUp.attemptEmailAddressVerification({
         code: codeString,
@@ -70,6 +87,8 @@ export default function VerifyEmailScreen() {
       }
     } catch (error: any) {
       Alert.alert('Error', error.errors?.[0]?.message || 'Verification failed');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -108,14 +127,17 @@ export default function VerifyEmailScreen() {
           {code.map((digit, index) => (
             <TextInput
               key={index}
+              ref={(el) => { inputRefs.current[index] = el; }}
               style={[
                 styles.codeInput,
                 digit ? styles.codeInputFilled : styles.codeInputEmpty
               ]}
-              maxLength={1}
+              maxLength={6}
               keyboardType="number-pad"
               value={digit}
               onChangeText={(text) => handleCodeChange(text, index)}
+              onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+              autoFocus={index === 0}
             />
           ))}
         </View>
@@ -139,10 +161,15 @@ export default function VerifyEmailScreen() {
 
         {/* Verify Button */}
         <TouchableOpacity 
-          style={styles.primaryButton}
+          style={[styles.primaryButton, verifying && { opacity: 0.7 }]}
           onPress={handleVerify}
+          disabled={verifying}
         >
-          <Text style={styles.buttonText}>Verify & Login</Text>
+          {verifying ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>Verify &amp; Login</Text>
+          )}
         </TouchableOpacity>
 
         {/* Back Option */}

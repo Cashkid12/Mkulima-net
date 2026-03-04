@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
@@ -12,6 +12,8 @@ export default function UsernameScreen() {
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<'available' | 'taken' | 'invalid' | 'checking' | 'empty'>('empty');
   const [displayName, setDisplayName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Generate suggested usernames based on user data
   useEffect(() => {
@@ -66,9 +68,9 @@ export default function UsernameScreen() {
     return regex.test(username);
   };
 
-  // Check username availability
-  const checkUsernameAvailability = async (username: string) => {
-    if (!isValidUsername(username)) {
+  // Check username availability (called after debounce)
+  const checkUsernameAvailability = useCallback(async (uname: string) => {
+    if (!isValidUsername(uname)) {
       setUsernameStatus('invalid');
       return;
     }
@@ -77,84 +79,81 @@ export default function UsernameScreen() {
     setUsernameStatus('checking');
 
     try {
-      // Make API call to check username availability
       const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
-      const response = await fetch(`${baseUrl}/api/profile/check-username/${username}`);
-      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+      const response = await fetch(`${baseUrl}/api/profile/check-username/${uname}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
-        if (data.available) {
-          setUsernameStatus('available');
-        } else {
-          setUsernameStatus('taken');
-        }
+        setUsernameStatus(data.available ? 'available' : 'taken');
       } else {
-        // If there's an error, assume the username is taken
-        setUsernameStatus('taken');
+        // treat non-200 as available — will validate on server at submit
+        setUsernameStatus('available');
       }
     } catch (error) {
-      console.error('Error checking username availability:', error);
-      // In case of network error, assume available for now and validate on submission
+      // network error / timeout — optimistically allow, validate on submit
       setUsernameStatus('available');
     } finally {
       setCheckingAvailability(false);
     }
-  };
+  }, []);
 
-  // Handle username input change
+  // Handle username input change — debounce 500ms
   const handleUsernameChange = (text: string) => {
-    // Remove @ symbol if user types it
     const cleanText = text.startsWith('@') ? text.substring(1) : text;
     setUsername(cleanText);
 
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
     if (cleanText.length === 0) {
       setUsernameStatus('empty');
-    } else if (isValidUsername(cleanText)) {
-      checkUsernameAvailability(cleanText);
-    } else {
-      setUsernameStatus('invalid');
+      return;
     }
+    if (!isValidUsername(cleanText)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+    // Set checking immediately so button isn't grey while user types
+    setUsernameStatus('checking');
+    debounceTimer.current = setTimeout(() => {
+      checkUsernameAvailability(cleanText);
+    }, 500);
   };
 
   // Handle continue button press
   const handleContinue = async () => {
-    if (usernameStatus === 'available') {
-      try {
-        // First, update the user in Clerk (this is the critical part for navigation)
-        await user?.update({
-          username: username,
-          firstName: displayName.split(' ')[0],
-          lastName: displayName.split(' ').slice(1).join(' ')
-        });
-          
-        // Then try to sync with backend API (non-critical for navigation)
-        try {
-          const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
-          const response = await fetch(`${baseUrl}/api/profile/username`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${await user?.getIdToken()}`,
-            },
-            body: JSON.stringify({ username }),
-          });
-  
-          if (!response.ok) {
-            console.warn('Warning: Could not sync username with backend');
-          }
-        } catch (apiError) {
-          console.warn('Warning: Could not sync username with backend', apiError);
-        }
-          
-        // Navigate to profile setup regardless of backend sync success
-        router.push('/auth/profile-setup');
-          
-      } catch (clerkError) {
-        console.error('Error updating Clerk user:', clerkError);
-        Alert.alert('Error', 'Failed to save username. Please try again.');
-      }
-    } else {
-      Alert.alert('Invalid Username', 'Please choose an available username.');
+    if (!username || usernameStatus === 'invalid' || usernameStatus === 'taken') {
+      Alert.alert('Invalid Username', 'Please choose a valid, available username.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await user?.update({
+        username: username,
+        firstName: displayName.split(' ')[0],
+        lastName: displayName.split(' ').slice(1).join(' ')
+      });
+
+      // Non-blocking backend sync — fire and forget
+      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
+      fetch(`${baseUrl}/api/profile/username`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user?.getIdToken()}`,
+        },
+        body: JSON.stringify({ username }),
+      }).catch(e => console.warn('Backend username sync failed', e));
+
+      // Navigate immediately — don't wait for backend
+      router.push('/auth/profile-setup');
+    } catch (clerkError) {
+      console.error('Error updating Clerk user:', clerkError);
+      Alert.alert('Error', 'Failed to save username. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -241,13 +240,19 @@ export default function UsernameScreen() {
       <TouchableOpacity
         style={[
           styles.continueButton,
-          { backgroundColor: usernameStatus === 'available' ? '#2E7D32' : '#cccccc' }
+          { backgroundColor: (usernameStatus === 'invalid' || usernameStatus === 'taken' || usernameStatus === 'empty') ? '#cccccc' : '#2E7D32' }
         ]}
         onPress={handleContinue}
-        disabled={usernameStatus !== 'available'}
+        disabled={saving || usernameStatus === 'invalid' || usernameStatus === 'taken' || usernameStatus === 'empty'}
       >
-        <Text style={styles.continueButtonText}>Continue</Text>
-        <Ionicons name="arrow-forward" size={20} color="white" style={styles.arrowIcon} />
+        {saving ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <>
+            <Text style={styles.continueButtonText}>Continue</Text>
+            <Ionicons name="arrow-forward" size={20} color="white" style={styles.arrowIcon} />
+          </>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
