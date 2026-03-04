@@ -2,12 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
-
 // @route   GET api/feed
 // @desc    Get feed posts (posts from followed users or all posts)
-// @access  Private
-router.get('/', auth, async (req, res) => {
+// @access  Private (auth handled by server-level Clerk middleware)
+router.get('/', async (req, res) => {
   try {
     const { feedType = 'forYou', limit = 20, offset = 0 } = req.query;
     
@@ -66,7 +64,7 @@ router.get('/', auth, async (req, res) => {
 // @route   GET api/feed/timeline
 // @desc    Get timeline posts (all posts ordered by recency)
 // @access  Private
-router.get('/timeline', auth, async (req, res) => {
+router.get('/timeline', async (req, res) => {
   try {
     const posts = await Post.find()
       .populate('user', ['firstName', 'lastName', 'farmName', 'location', 'profilePicture', 'verified'])
@@ -90,7 +88,7 @@ router.get('/timeline', auth, async (req, res) => {
 // @route   POST api/feed/:id/react
 // @desc    Add reaction to a post
 // @access  Private
-router.post('/:id/react', auth, async (req, res) => {
+router.post('/:id/react', async (req, res) => {
   try {
     const { type } = req.body;
 
@@ -149,7 +147,7 @@ router.post('/:id/react', auth, async (req, res) => {
 // @route   POST api/feed/:id/save
 // @desc    Save/unsave a post
 // @access  Private
-router.post('/:id/save', auth, async (req, res) => {
+router.post('/:id/save', async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) {

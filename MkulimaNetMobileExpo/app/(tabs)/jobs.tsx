@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, TextInput, ScrollView, Modal, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '@clerk/clerk-expo';
+import { jobsApi } from '../../services/api';
 
 // Color System - Jobs+ Mobile Spec
 const colors = {
@@ -260,6 +262,7 @@ const mockJobs: Job[] = [
 const categories = ['All', 'Farm', 'Vet', 'Management', 'Sales', 'Labor', 'Tech', 'Transport', 'Processing'];
 
 export default function JobsScreen() {
+  const { getToken } = useAuth();
   const [jobs, setJobs] = useState<Job[]>(mockJobs);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -286,30 +289,75 @@ export default function JobsScreen() {
   });
   const router = useRouter();
 
-  // Fetch jobs with fallback
-  const fetchJobs = async () => {
+  /** Map backend job → our Job interface */
+  const mapBackendJob = (j: any): Job => ({
+    id: j._id ?? j.id,
+    title: j.title || '',
+    company: j.companyName || j.employerId?.farmName || 'Company',
+    location: j.location?.town
+      ? `${j.location.town}, ${j.location.county || 'Kenya'}`
+      : typeof j.location === 'string' ? j.location : 'Kenya',
+    salary: j.salary
+      ? `KES ${j.salary.min?.toLocaleString() || ''}${j.salary.max ? ' - ' + j.salary.max.toLocaleString() : ''}/${j.salary.period || 'month'}`
+      : 'Negotiable',
+    type: j.jobType || 'Full-time',
+    description: j.description || '',
+    requirements: j.requiredSkills || [],
+    urgent: j.isUrgent || false,
+    featured: j.isFeatured || false,
+    applicants: j.applicantsCount || 0,
+    postedAt: j.createdAt ? new Date(j.createdAt).toLocaleDateString() : '',
+    experience: j.experienceRequired || '',
+  });
+
+  // Fetch jobs with real API fallback
+  const fetchJobs = useCallback(async () => {
     try {
-      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
-      const response = await fetch(`${baseUrl}/api/jobs`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setJobs(data);
+      const token = await getToken();
+      const data = await jobsApi.getJobs(token, { limit: 20 });
+      if (data?.jobs && data.jobs.length > 0) {
+        setJobs(data.jobs.map(mapBackendJob));
       }
     } catch (error) {
-      console.warn('API fetch failed, keeping mock jobs:', error);
+      console.warn('Jobs API failed, keeping mock data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [getToken]);
+
+  // Fetch my applications
+  const fetchApplications = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const data = await jobsApi.getMyApplications(token);
+      if (Array.isArray(data) && data.length > 0) {
+        setApplications(data.map((a: any) => ({
+          id: a._id ?? a.id,
+          jobId: a.jobId?._id ?? a.jobId,
+          jobTitle: a.jobId?.title || 'Unknown Job',
+          company: a.jobId?.companyName || 'Company',
+          appliedDate: a.createdAt ? new Date(a.createdAt).toLocaleDateString() : '',
+          status: a.status || 'pending',
+          progress: a.status === 'accepted' || a.status === 'rejected' ? 100
+            : a.status === 'interview' ? 100
+            : a.status === 'in_review' ? 70
+            : 30,
+        })));
+      }
+    } catch (err) {
+      console.warn('Applications API failed:', err);
+    }
+  }, [getToken]);
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+    fetchApplications();
+  }, [fetchJobs, fetchApplications]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchJobs();
+    await fetchApplications();
     setRefreshing(false);
   };
 
@@ -1100,7 +1148,19 @@ export default function JobsScreen() {
             <MaterialIcons name="attach-money" size={20} color={colors.primaryGreen} />
             <Text style={styles.salaryText}>{selectedJob?.salary}</Text>
           </View>
-          <TouchableOpacity style={styles.applyNowButton}>
+          <TouchableOpacity
+            style={styles.applyNowButton}
+            onPress={async () => {
+              if (!selectedJob) return;
+              try {
+                const token = await getToken();
+                await jobsApi.applyToJob(selectedJob.id, { message: '' }, token);
+                setShowDetail(false);
+              } catch (err) {
+                console.warn('Apply API failed:', err);
+              }
+            }}
+          >
             <Text style={styles.applyNowText}>Apply Now</Text>
           </TouchableOpacity>
         </View>

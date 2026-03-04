@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
-const auth = require('../middleware/auth');
+// auth is handled by server-level Clerk middleware
 const Post = require('../models/Post');
 const User = require('../models/User');
 
@@ -11,7 +11,6 @@ const User = require('../models/User');
 router.post(
   '/',
   [
-    auth,
     [
       check('content', 'Content is required')
         .not()
@@ -109,7 +108,7 @@ router.post(
 // @route   GET /api/posts/my-posts
 // @desc    Get all posts by authenticated user
 // @access  Private
-router.get('/my-posts', auth, async (req, res) => {
+router.get('/my-posts', async (req, res) => {
   try {
     const sort = req.query.sort || 'newest';
     
@@ -156,7 +155,7 @@ router.get('/my-posts', auth, async (req, res) => {
 // @route   GET /api/users/:userId/posts
 // @desc    Get posts by a specific user (for profile page)
 // @access  Private
-router.get('/users/:userId/posts', auth, async (req, res) => {
+router.get('/users/:userId/posts', async (req, res) => {
   try {
     const userId = req.params.userId;
     const sort = req.query.sort || 'newest';
@@ -213,7 +212,7 @@ router.get('/users/:userId/posts', auth, async (req, res) => {
 // @route   GET /api/posts/:id
 // @desc    Get a single post by ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate('user', 'firstName lastName farmName location profilePicture verified')
@@ -250,7 +249,7 @@ router.get('/:id', auth, async (req, res) => {
 // @route   PUT /api/posts/:id
 // @desc    Update a post
 // @access  Private
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { content, media, productsTagged, servicesTagged, communitiesTagged, location, visibility, tags } = req.body;
     
@@ -294,7 +293,7 @@ router.put('/:id', auth, async (req, res) => {
 // @route   DELETE /api/posts/:id
 // @desc    Delete a post
 // @access  Private
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
 
@@ -324,7 +323,7 @@ router.delete('/:id', auth, async (req, res) => {
 // @route   GET /api/posts/:id
 // @desc    Get a single post by ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate('user', 'firstName lastName farmName location profilePicture verified')
@@ -372,7 +371,7 @@ router.get('/:id', auth, async (req, res) => {
 // @route   GET /api/posts/feed
 // @desc    Get feed posts with pagination
 // @access  Private
-router.get('/feed', auth, async (req, res) => {
+router.get('/feed', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -457,7 +456,7 @@ router.get('/feed', auth, async (req, res) => {
 // @route   POST /api/posts/:id/react
 // @desc    React to a post (LinkedIn-style reactions)
 // @access  Private
-router.post('/:id/react', auth, async (req, res) => {
+router.post('/:id/react', async (req, res) => {
   try {
     const { type } = req.body;
     const validReactions = ['celebrate', 'support', 'love', 'insightful', 'funny'];
@@ -563,7 +562,7 @@ router.post('/:id/react', auth, async (req, res) => {
 // @route   DELETE /api/posts/:id/react
 // @desc    Remove reaction from a post
 // @access  Private
-router.delete('/:id/react', auth, async (req, res) => {
+router.delete('/:id/react', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
 
@@ -611,7 +610,7 @@ router.delete('/:id/react', auth, async (req, res) => {
 // @route   GET /api/posts/:id/reactions
 // @desc    Get reactions for a post
 // @access  Private
-router.get('/:id/reactions', auth, async (req, res) => {
+router.get('/:id/reactions', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate({
@@ -652,7 +651,7 @@ router.get('/:id/reactions', auth, async (req, res) => {
 // @route   POST /api/posts/:id/like
 // @desc    Like/unlike a post (legacy - redirects to react)
 // @access  Private
-router.post('/:id/like', auth, async (req, res) => {
+router.post('/:id/like', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
 
@@ -681,7 +680,7 @@ router.post('/:id/like', auth, async (req, res) => {
 // @route   POST /api/posts/:id/save
 // @desc    Save/unsave a post
 // @access  Private
-router.post('/:id/save', auth, async (req, res) => {
+router.post('/:id/save', async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     const postId = req.params.id;
@@ -712,7 +711,6 @@ router.post('/:id/save', auth, async (req, res) => {
 // @desc    Comment on a post
 // @access  Private
 router.post('/:id/comment', [
-  auth,
   [
     check('content', 'Comment content is required')
       .not()
@@ -810,7 +808,7 @@ router.post('/:id/comment', [
 // @route   DELETE /api/posts/:id/comments/:commentId
 // @desc    Delete a comment
 // @access  Private
-router.delete('/:id/comments/:commentId', auth, async (req, res) => {
+router.delete('/:id/comments/:commentId', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
 

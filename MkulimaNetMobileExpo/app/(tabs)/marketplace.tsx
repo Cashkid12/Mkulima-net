@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, Image, ScrollView, TouchableOpacity, TextInput, Modal, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '@clerk/clerk-expo';
+import { productsApi } from '../../services/api';
 
 // Color System - Marketplace Mobile Spec
 const colors = {
@@ -232,6 +234,7 @@ const categories: { key: ProductCategory; label: string; icon: string }[] = [
 const flashSaleEndsIn = { hours: 4, minutes: 32, seconds: 15 };
 
 export default function MarketplaceScreen() {
+  const { getToken } = useAuth();
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -325,10 +328,53 @@ export default function MarketplaceScreen() {
     return true;
   });
 
+  /** Map backend product → our Product interface */
+  const mapBackendProduct = (p: any): Product => ({
+    id: p._id ?? p.id,
+    name: p.name || '',
+    price: p.price || 0,
+    description: p.description || '',
+    category: (p.category as ProductCategory) || 'all',
+    condition: p.condition as ProductCondition || undefined,
+    location: p.location?.town || p.location?.county || 'Kenya',
+    image: p.images?.[0] || 'https://via.placeholder.com/300x200',
+    images: p.images || [],
+    seller: {
+      name: p.seller?.username || p.seller?.farmName || 'Seller',
+      verified: p.seller?.verified || false,
+      rating: p.seller?.rating || 4.0,
+      sales: p.seller?.salesCount || 0,
+      online: false,
+    },
+    stock: p.quantity || 0,
+    reviews: p.ratings?.count || 0,
+    featured: p.isFeatured || false,
+  });
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const data = await productsApi.getProducts(token, {
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        search: searchQuery || undefined,
+        limit: 20,
+      });
+      if (data?.products && data.products.length > 0) {
+        setProducts(data.products.map(mapBackendProduct));
+      }
+    } catch (err) {
+      console.warn('Products API failed, keeping mock data:', err);
+    }
+  }, [getToken, selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
   const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh
-    setTimeout(() => setRefreshing(false), 1000);
+    await fetchProducts();
+    setRefreshing(false);
   };
 
   // Render Header

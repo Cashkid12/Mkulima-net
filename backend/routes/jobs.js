@@ -2,13 +2,13 @@ const express = require('express');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
 const User = require('../models/User');
-const authenticateToken = require('../middleware/auth');
+// auth handled by server-level Clerk middleware
 const router = express.Router();
 
 // @route   POST api/jobs
 // @desc    Post a new job
 // @access  Private
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       title,
@@ -139,7 +139,7 @@ router.get('/:id', async (req, res) => {
 // @route   PUT api/jobs/:id
 // @desc    Update a job
 // @access  Private (Employer only)
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
 
@@ -175,7 +175,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // @route   DELETE api/jobs/:id
 // @desc    Delete a job
 // @access  Private (Employer only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
 
@@ -200,7 +200,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 // @route   POST api/jobs/:id/apply
 // @desc    Apply to a job
 // @access  Private (Applicant only)
-router.post('/:id/apply', authenticateToken, async (req, res) => {
+router.post('/:id/apply', async (req, res) => {
   try {
     const { message, cvUrl } = req.body;
     const jobId = req.params.id;
@@ -337,7 +337,7 @@ router.get('/employer/:employerId', async (req, res) => {
 // @route   GET api/jobs/applications/:jobId
 // @desc    Get applications for a job (Employer only)
 // @access  Private
-router.get('/applications/:jobId', authenticateToken, async (req, res) => {
+router.get('/applications/:jobId', async (req, res) => {
   try {
     const job = await Job.findById(req.params.jobId);
     
@@ -364,7 +364,7 @@ router.get('/applications/:jobId', authenticateToken, async (req, res) => {
 // @route   GET api/jobs/dashboard/stats
 // @desc    Get job-related dashboard stats
 // @access  Private
-router.get('/dashboard/stats', authenticateToken, async (req, res) => {
+router.get('/dashboard/stats', async (req, res) => {
   try {
     // Get stats for the authenticated user
     const userId = req.userId;
@@ -408,7 +408,7 @@ router.get('/dashboard/stats', authenticateToken, async (req, res) => {
 // @route   GET api/jobs/applications/user
 // @desc    Get applications made by user (Applicant only)
 // @access  Private
-router.get('/applications/user', authenticateToken, async (req, res) => {
+router.get('/applications/user', async (req, res) => {
   try {
     const applications = await Application.find({ applicantId: req.userId })
       .populate('jobId', 'title companyName location jobType category salary deadline')

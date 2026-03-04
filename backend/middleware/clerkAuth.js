@@ -35,6 +35,8 @@ const authenticateClerkUser = async (req, res, next) => {
       role: user.publicMetadata?.role || 'user',
       imageUrl: user.imageUrl
     };
+    // Compatibility alias used by some routes
+    req.userId = user.id;
 
     next();
   } catch (error) {

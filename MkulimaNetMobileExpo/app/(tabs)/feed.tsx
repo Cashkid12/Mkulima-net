@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, FlatList, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Dimensions, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Redirect } from 'expo-router';
+import { feedApi, postsApi, notificationsApi } from '../../services/api';
 
 // Define TypeScript interfaces
 interface Author {
@@ -238,48 +238,11 @@ const mockPostsData: Post[] = [
 
 export default function FeedScreen() {
   const router = useRouter();
-  // Simplified auth check - comment out for now to show mock data
-  // const { user, isLoaded: isLoading } = useUser();
-  // const { isSignedIn } = useAuth();
-  // const userId = user?.id;
+  const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
 
-  // For now, show feed without auth check to display mock data
-  const isLoading = false;
-  const isSignedIn = false;
-  const userId = 'demo-user';
-  const user: any = { firstName: 'Demo', imageUrl: 'https://via.placeholder.com/60x60' };
-
-  /*
-  // ORIGINAL AUTH CODE - uncomment when backend is ready
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
-  if (!isSignedIn || !userId) {
-    return <Redirect href="/welcome" />;
-  }
-  
-  // Check if user has completed profile setup
-  const hasUsername = !!user.username;
-  const hasCompletedProfile = user.publicMetadata.completedProfile;
-  
-  if (!hasUsername || !hasCompletedProfile) {
-    // Redirect to username setup if not completed
-    return <Redirect href="/auth/username" />;
-  }
-
-  useEffect(() => {
-    if (!isLoading && (!isSignedIn || !userId)) {
-      router.replace('/welcome');
-    }
-  }, [userId, isSignedIn, isLoading, router]);
-  */
-
-  const [posts, setPosts] = useState<Post[]>(mockPostsData); // Start with mock data immediately
+  // Show mock data immediately while real data loads
+  const [posts, setPosts] = useState<Post[]>(mockPostsData);
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -292,11 +255,52 @@ export default function FeedScreen() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(3); // Mock unread count
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [activeFilter, setActiveFilter] = useState('All');
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [savedPosts, setSavedPosts] = useState<Set<number>>(new Set());
+
+  /** Map backend post fields → our Post interface */
+  const mapBackendPost = (p: any): Post => ({
+    id: p._id ?? p.id,
+    author: {
+      name: p.user
+        ? `${p.user.firstName ?? ''} ${p.user.lastName ?? ''}`.trim()
+        : 'Unknown',
+      avatar: p.user?.profilePicture || 'https://via.placeholder.com/48x48',
+      location: p.user?.location?.town || p.user?.location || 'Kenya',
+      role: p.user?.role || 'Farmer',
+      verified: p.user?.verified || false,
+    },
+    content: p.content || '',
+    image: p.media?.[0] || undefined,
+    images: p.media?.length > 1 ? p.media : undefined,
+    reactions: {
+      like: p.likes?.length || 0,
+      celebrate: 0,
+      love: 0,
+      insightful: 0,
+      funny: 0,
+    },
+    totalReactions: p.likes?.length || 0,
+    comments: (p.comments || []).slice(0, 2).map((c: any) => ({
+      id: c._id ?? c.id,
+      author: {
+        name: c.user ? `${c.user.firstName ?? ''} ${c.user.lastName ?? ''}`.trim() : c.name || 'User',
+        avatar: c.user?.profilePicture || 'https://via.placeholder.com/24x24',
+      },
+      content: c.content || '',
+      likes: 0,
+      timestamp: c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'recently',
+      replies: 0,
+    })),
+    totalComments: p.comments?.length || 0,
+    timestamp: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '',
+    type: p.postType || 'text',
+    hashtags: p.tags || [],
+  });
 
   // Professional color palette - MkulimaNet Mobile Spec
   const colors = {
@@ -382,106 +386,127 @@ export default function FeedScreen() {
     setStories(mockStories);
   }, [user?.imageUrl]);
 
-  // Fetch posts from API with fallback to mock data
+  // Fetch posts from real API, fall back to mock data
+  const fetchPosts = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const data = await feedApi.getFeed(token, 'forYou', 20, 0);
+      if (Array.isArray(data) && data.length > 0) {
+        setPosts(data.map(mapBackendPost));
+      }
+    } catch (err) {
+      console.warn('Feed API failed, keeping mock data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken]);
+
   useEffect(() => {
-    const fetchPostsData = async () => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
       try {
-        const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
-        const response = await fetch(`${baseUrl}/api/posts`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setPosts(data);
+        const token = await getToken();
+        const data = await notificationsApi.getNotifications(token);
+        if (Array.isArray(data)) {
+          setNotifications(data);
+          setUnreadNotifications(data.filter((n: any) => !n.read).length);
         }
-        // If API fails, we already have mockPostsData displayed
-      } catch (error) {
-        console.warn('API fetch failed, keeping mock data:', error);
-        // Keep the mockPostsData that are already displayed
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.warn('Notifications API failed:', err);
       }
     };
-    
-    fetchPostsData();
-  }, []);
+    fetchNotifications();
+  }, [getToken]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'https://mkulima-net.onrender.com').replace(/\/$/, '');
-      const response = await fetch(`${baseUrl}/api/posts`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setPosts(data);
+      const token = await getToken();
+      const data = await feedApi.getFeed(token, 'forYou', 20, 0);
+      if (Array.isArray(data) && data.length > 0) {
+        setPosts(data.map(mapBackendPost));
       } else {
-        setPosts(mockPostsData)
+        setPosts(mockPostsData);
       }
     } catch (error) {
-      console.warn('API refresh failed, using mock data:', error);
-      setPosts(mockPostsData)
+      console.warn('Refresh failed, using mock data:', error);
+      setPosts(mockPostsData);
     } finally {
       setRefreshing(false);
     }
   };
 
-  const handleReaction = (postId: number, reactionType: keyof ReactionCounts) => {
-    setPosts(prevPosts => 
+  const handleReaction = async (postId: number, reactionType: keyof ReactionCounts) => {
+    // Optimistic update
+    setPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === postId) {
           const newReactions = { ...post.reactions };
           (newReactions[reactionType] as number)++;
-          
-          return {
-            ...post,
-            reactions: newReactions,
-            totalReactions: post.totalReactions + 1
-          };
+          return { ...post, reactions: newReactions, totalReactions: post.totalReactions + 1 };
         }
         return post;
       })
     );
     setReactionPopupVisible(false);
+    // Call API in background
+    try {
+      const token = await getToken();
+      await postsApi.reactToPost(String(postId), reactionType, token);
+    } catch (err) {
+      console.warn('Reaction API failed:', err);
+    }
   };
 
-  const handleSavePost = (postId: number) => {
+  const handleSavePost = async (postId: number) => {
     setSavedPosts(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
-      } else {
-        newSet.add(postId);
-      }
+      if (newSet.has(postId)) newSet.delete(postId);
+      else newSet.add(postId);
       return newSet;
     });
+    try {
+      const token = await getToken();
+      await postsApi.savePost(String(postId), token);
+    } catch (err) {
+      console.warn('Save post API failed:', err);
+    }
   };
 
-  const handleCommentSubmit = () => {
+  const handleCommentSubmit = async () => {
     if (commentText.trim() && selectedPost) {
       const newComment: Comment = {
         id: Date.now(),
-        author: { name: user?.firstName || 'Current User', avatar: user?.imageUrl || 'https://via.placeholder.com/24x24' },
+        author: { name: user?.firstName || 'You', avatar: user?.imageUrl || 'https://via.placeholder.com/24x24' },
         content: commentText,
         likes: 0,
         timestamp: 'Just now',
         replies: 0
       };
 
-      setPosts(prevPosts => 
+      setPosts(prevPosts =>
         prevPosts.map(post => {
           if (post.id === selectedPost.id) {
-            return {
-              ...post,
-              comments: [...post.comments, newComment],
-              totalComments: post.totalComments + 1
-            };
+            return { ...post, comments: [...post.comments, newComment], totalComments: post.totalComments + 1 };
           }
           return post;
         })
       );
 
+      const text = commentText;
       setCommentText('');
       setShowComments(false);
+
+      try {
+        const token = await getToken();
+        await postsApi.addComment(String(selectedPost.id), text, token);
+      } catch (err) {
+        console.warn('Comment API failed:', err);
+      }
     }
   };
 
@@ -717,18 +742,30 @@ export default function FeedScreen() {
           </View>
           
           <ScrollView style={styles.notificationList}>
-            <View style={styles.notificationCategory}>
-              <Text style={[styles.categoryTitle, { color: colors.metadataText }]}>Likes</Text>
-              <View style={styles.notificationItem}>
-                <Image source={{ uri: 'https://via.placeholder.com/30x30' }} style={styles.notificationAvatar} />
+            {notifications.length > 0 ? notifications.map((n: any) => (
+              <View key={n._id || n.id} style={styles.notificationItem}>
+                <Image source={{ uri: n.sourceUser?.profilePicture || 'https://via.placeholder.com/30x30' }} style={styles.notificationAvatar} />
                 <View style={styles.notificationContent}>
-                  <Text style={[styles.notificationText, { color: colors.primaryText }]}>
-                    <Text style={[styles.boldText, { color: colors.primaryText }]}>James Maina</Text> liked your post
+                  <Text style={[styles.notificationText, { color: colors.primaryText }]}>{n.title || n.message}</Text>
+                  <Text style={[styles.notificationTime, { color: colors.metadataText }]}>
+                    {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}
                   </Text>
-                  <Text style={[styles.notificationTime, { color: colors.metadataText }]}>2 min ago</Text>
                 </View>
               </View>
-            </View>
+            )) : (
+              <View style={styles.notificationCategory}>
+                <Text style={[styles.categoryTitle, { color: colors.metadataText }]}>Likes</Text>
+                <View style={styles.notificationItem}>
+                  <Image source={{ uri: 'https://via.placeholder.com/30x30' }} style={styles.notificationAvatar} />
+                  <View style={styles.notificationContent}>
+                    <Text style={[styles.notificationText, { color: colors.primaryText }]}>
+                      <Text style={[styles.boldText, { color: colors.primaryText }]}>James Maina</Text> liked your post
+                    </Text>
+                    <Text style={[styles.notificationTime, { color: colors.metadataText }]}>2 min ago</Text>
+                  </View>
+                </View>
+              </View>
+            )}
           </ScrollView>
         </View>
       </TouchableOpacity>

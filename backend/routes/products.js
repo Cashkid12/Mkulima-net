@@ -1,14 +1,14 @@
 const express = require('express');
 const Product = require('../models/Product');
 const User = require('../models/User');
-const authenticateToken = require('../middleware/auth');
+// auth handled by server-level Clerk middleware
 const mongoose = require('mongoose'); // Add mongoose for ObjectId conversion
 const router = express.Router();
 
 // @route   POST api/products
 // @desc    Create a new product listing
 // @access  Private
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       name,
@@ -240,7 +240,7 @@ router.get('/:id', async (req, res) => {
 // @route   PUT api/products/:id
 // @desc    Update a product
 // @access  Private
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
 
@@ -276,7 +276,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // @route   DELETE api/products/:id
 // @desc    Delete a product
 // @access  Private
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
 
@@ -320,7 +320,7 @@ router.get('/seller/:sellerId', async (req, res) => {
 // @route   POST api/products/:id/rate
 // @desc    Rate a product
 // @access  Private
-router.post('/:id/rate', authenticateToken, async (req, res) => {
+router.post('/:id/rate', async (req, res) => {
   try {
     const { rating } = req.body;
     const product = await Product.findById(req.params.id);
@@ -526,7 +526,7 @@ router.get('/search', async (req, res) => {
 // @route   GET api/products/dashboard/stats
 // @desc    Get marketplace stats for a user
 // @access  Private
-router.get('/dashboard/stats', authenticateToken, async (req, res) => {
+router.get('/dashboard/stats', async (req, res) => {
   try {
     // Get user ID from authenticated token
     const userId = req.userId;
