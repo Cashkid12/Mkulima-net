@@ -314,12 +314,19 @@ export default function JobsScreen() {
   const fetchJobs = useCallback(async () => {
     try {
       const token = await getToken();
-      const data = await jobsApi.getJobs(token, { limit: 20 });
+      
+      // Timeout after 5 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const data = await jobsApi.getJobs(token, { limit: 20, signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (data?.jobs && data.jobs.length > 0) {
         setJobs(data.jobs.map(mapBackendJob));
       }
     } catch (error) {
-      console.warn('Jobs API failed, keeping mock data:', error);
+      console.warn('Jobs API failed, keeping mock data:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }

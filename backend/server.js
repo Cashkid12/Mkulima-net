@@ -22,6 +22,7 @@ const weatherRoutes = require('./routes/weather');
 const feedRoutes = require('./routes/feed');
 const followRoutes = require('./routes/follow');
 const messageRoutes = require('./routes/messages');
+const walletRoutes = require('./routes/wallet');
 
 // Import Clerk middleware
 const authenticateClerkUser = require('./middleware/clerkAuth');
@@ -68,6 +69,7 @@ app.use('/api/settings', authenticateClerkUser, settingsRoutes);
 app.use('/api/weather', authenticateClerkUser, weatherRoutes);
 app.use('/api/feed', authenticateClerkUser, feedRoutes);
 app.use('/api/follow', authenticateClerkUser, followRoutes);
+app.use('/api/wallet', authenticateClerkUser, walletRoutes);
 
 // Create HTTP server
 const server = http.createServer(app);

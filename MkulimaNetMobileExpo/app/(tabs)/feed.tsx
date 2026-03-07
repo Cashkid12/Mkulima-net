@@ -1,10 +1,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, FlatList, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Dimensions, Animated } from 'react-native';
+import { StyleSheet, View, Text, FlatList, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Dimensions, Animated, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUser, useAuth } from '@clerk/clerk-expo';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { feedApi, postsApi, notificationsApi } from '../../services/api';
+
+// Color System
+const COLORS = {
+  primaryGreen: '#1B8E3E',
+  secondaryGreen: '#34A853',
+  lightGreenBg: '#E8F5E9',
+  white: '#FFFFFF',
+  primaryText: '#222222',
+  secondaryText: '#757575',
+  lightGrayBg: '#F5F7FA',
+  borderGray: '#E6E6E6',
+  error: '#F44336',
+  highlight: '#2196F3',
+};
+
+// Typography
+const FONTS = {
+  title: { fontSize: 18, fontWeight: '700' },
+  username: { fontSize: 16, fontWeight: '600' },
+  postText: { fontSize: 16, fontWeight: '400' },
+  metadata: { fontSize: 14, color: COLORS.secondaryText },
+  label: { fontSize: 12, color: COLORS.secondaryText },
+};
 
 // Define TypeScript interfaces
 interface Author {
@@ -261,6 +284,7 @@ export default function FeedScreen() {
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [savedPosts, setSavedPosts] = useState<Set<number>>(new Set());
+  const scaleAnim = useState(new Animated.Value(1))[0];
 
   /** Map backend post fields → our Post interface */
   const mapBackendPost = (p: any): Post => ({
@@ -334,15 +358,15 @@ export default function FeedScreen() {
   };
 
   // Filter options
-  const filterOptions = ['All', 'Crops', 'Livestock', 'Jobs', 'Advice', 'Marketplace', 'Following'];
+  const filterOptions = ['All', 'Following', 'Market', 'Jobs', 'Advice'];
 
   // Mock reactions data for demonstration
   const reactionTypes: ReactionType[] = [
-    { name: 'like', icon: 'thumb-up', color: colors.primaryGreen },
-    { name: 'celebrate', icon: 'emoji-events', color: '#F59E0B' },
-    { name: 'love', icon: 'favorite', color: '#EF4444' },
-    { name: 'insightful', icon: 'lightbulb', color: '#3B82F6' },
-    { name: 'funny', icon: 'sentiment-very-satisfied', color: '#8B5CF6' },
+    { name: 'Like', icon: 'thumbs-up', color: COLORS.primaryGreen },
+    { name: 'Love', icon: 'heart', color: '#EF4444' },
+    { name: 'Helpful', icon: 'leaf', color: '#F59E0B' },
+    { name: 'Celebrate', icon: 'star', color: '#F59E0B' },
+    { name: 'Insightful', icon: 'bulb', color: '#3B82F6' },
   ];
 
   // Mock stories data
@@ -792,27 +816,24 @@ export default function FeedScreen() {
     <ScrollView 
       horizontal 
       showsHorizontalScrollIndicator={false} 
-      style={styles.filterTabsContainer}
-      contentContainerStyle={styles.filterTabsContent}
+      style={styles.filterContainer}
+      contentContainerStyle={styles.filterContent}
     >
       {filterOptions.map((option) => (
         <TouchableOpacity
           key={option}
           style={[
             styles.filterTab,
-            activeFilter === option && styles.activeFilterTab
+            activeFilter === option && styles.filterTabActive
           ]}
           onPress={() => setActiveFilter(option)}
         >
           <Text style={[
-            styles.filterTabText,
-            activeFilter === option && styles.activeFilterTabText
+            styles.filterText,
+            activeFilter === option && styles.filterTextActive
           ]}>
             {option}
           </Text>
-          {activeFilter === option && (
-            <View style={[styles.activeTabIndicator, { backgroundColor: colors.primaryGreen }]} />
-          )}
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -931,11 +952,7 @@ export default function FeedScreen() {
     const hasTopComment = post.comments.length > 0;
 
     return (
-      <View style={[styles.postCard, { 
-        backgroundColor: colors.white,
-        borderColor: colors.borderColor,
-        shadowColor: colors.shadowColor
-      }]}>
+      <View style={[styles.postCard]}>
         {/* Job/Expert Badge */}
         {renderJobBadge(post)}
         
@@ -947,35 +964,35 @@ export default function FeedScreen() {
               style={[styles.avatar, post.author.verified && styles.verifiedAvatar]} 
             />
             {post.author.verified && (
-              <View style={[styles.verificationBadge, { backgroundColor: colors.primaryGreen }]}>
-                <MaterialIcons name="check" size={12} color={colors.white} />
+              <View style={styles.verificationBadge}>
+                <Ionicons name="checkmark" size={12} color={COLORS.white} />
               </View>
             )}
             <View style={styles.authorDetails}>
-              <Text style={[styles.authorName, { color: colors.primaryText }]}>{post.author.name}</Text>
+              <Text style={styles.authorName}>{post.author.name}</Text>
               <View style={styles.postMeta}>
-                <Text style={[styles.timestamp, { color: colors.metadataText }]}>
+                <Text style={styles.timestamp}>
                   {post.timestamp} • 
                 </Text>
-                <MaterialIcons name="location-on" size={12} color={colors.secondaryGreen} />
-                <Text style={[styles.location, { color: colors.metadataText }]}>{post.author.location}</Text>
+                <Ionicons name="location" size={12} color={COLORS.primaryGreen} />
+                <Text style={styles.location}>{post.author.location}</Text>
               </View>
             </View>
           </View>
           <TouchableOpacity>
-            <MaterialIcons name="more-vert" size={20} color={colors.lightText} />
+            <Ionicons name="ellipsis-vertical" size={20} color={COLORS.secondaryText} />
           </TouchableOpacity>
         </View>
 
         {/* Post Content */}
         <View style={styles.postContent}>
-          <Text style={[styles.postText, { color: colors.secondaryText }]}>{post.content}</Text>
+          <Text style={[styles.postText, { color: COLORS.primaryText }]}>{post.content}</Text>
           
           {/* Hashtags */}
           {post.hashtags && post.hashtags.length > 0 && (
             <View style={styles.hashtagsContainer}>
               {post.hashtags.map((tag, index) => (
-                <Text key={index} style={[styles.hashtag, { color: colors.primaryGreen }]}>
+                <Text key={index} style={[styles.hashtag, { color: COLORS.primaryGreen }]}>
                   {tag}{index < post.hashtags.length - 1 ? ', ' : ''}
                 </Text>
               ))}
@@ -987,18 +1004,14 @@ export default function FeedScreen() {
         </View>
 
         {/* Post Stats Bar */}
-        <View style={[styles.statsBar, { borderTopColor: colors.borderColor, borderBottomColor: colors.borderColor }]}>
+        <View style={styles.statsBar}>
           <View style={styles.reactionsPreview}>
-            <MaterialIcons name="thumb-up" size={16} color={colors.primaryGreen} />
-            <MaterialIcons name="favorite" size={16} color="#EF4444" />
-            <MaterialIcons name="emoji-events" size={16} color="#F59E0B" />
+            <Ionicons name="thumbs-up" size={16} color={COLORS.primaryGreen} />
+            <Ionicons name="heart" size={16} color="#EF4444" />
+            <Ionicons name="leaf" size={16} color="#F59E0B" />
+            <Text style={styles.reactionCount}>{totalReactions} reactions</Text>
           </View>
-          <Text style={[styles.reactionCount, { color: colors.metadataText }]}>
-            {totalReactions} reactions
-          </Text>
-          <Text style={[styles.commentCount, { color: colors.metadataText }]}>
-            {post.totalComments} comments
-          </Text>
+          <Text style={styles.commentCount}>{post.totalComments} comments</Text>
         </View>
 
         {/* Action Buttons */}
@@ -1016,12 +1029,12 @@ export default function FeedScreen() {
                 setReactionPopupVisible(true);
               }}
             >
-              <MaterialIcons 
+              <Ionicons 
                 name={reaction.icon as any} 
                 size={22} 
-                color={colors.lightText} 
+                color={COLORS.secondaryText} 
               />
-              <Text style={[styles.actionText, { color: colors.metadataText }]}>
+              <Text style={styles.actionText}>
                 {reaction.name}
               </Text>
             </TouchableOpacity>
@@ -1132,31 +1145,32 @@ export default function FeedScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.lightGray }]}>
-      {/* New Clean Header */}
-      <View style={[styles.header, { 
-        backgroundColor: colors.white,
-        borderBottomColor: colors.borderColor,
-        shadowColor: colors.shadowColor
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.lightGrayBg }]}>
+      {/* Status Bar */}
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      
+      {/* Top App Bar - 60px height */}
+      <View style={[styles.topAppBar, { 
+        backgroundColor: COLORS.white,
+        borderBottomColor: COLORS.borderGray,
       }]}>
-        <View style={styles.leftHeader}>
-          <TouchableOpacity>
-            <MaterialIcons name="agriculture" size={24} color={colors.primaryGreen} />
-          </TouchableOpacity>
+        <View style={styles.topAppBarLeft}>
+          <Ionicons name="leaf" size={28} color={COLORS.primaryGreen} />
+          <Text style={styles.appName}>MkulimaNet</Text>
         </View>
         
         {/* Center Search Bar */}
         {renderSearchBar()}
         
         {/* Right Notification Icon */}
-        <View style={styles.rightHeader}>
+        <View style={styles.topAppBarRight}>
           <TouchableOpacity 
             style={styles.notificationButton}
             onPress={() => setShowNotifications(true)}
           >
-            <MaterialIcons name="notifications" size={24} color={colors.lightText} />
+            <Ionicons name="notifications-outline" size={24} color={COLORS.secondaryText} />
             {unreadNotifications > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: colors.error }]}>
+              <View style={[styles.notificationBadge, { backgroundColor: COLORS.error }]}>
                 <Text style={styles.notificationBadgeText}>{unreadNotifications}</Text>
               </View>
             )}
@@ -1164,11 +1178,11 @@ export default function FeedScreen() {
         </View>
       </View>
       
+      {/* Feed Filters */}
+      {renderFilterTabs()}
+      
       {/* Stories Row */}
       {renderStoriesRow()}
-      
-      {/* Filter Tabs */}
-      {renderFilterTabs()}
       
       {/* Posts List */}
       <FlatList
@@ -1181,10 +1195,10 @@ export default function FeedScreen() {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh}
-            colors={[colors.primaryGreen]}
-            tintColor={colors.primaryGreen}
-            title="Checking for new posts"
-            titleColor={colors.metadataText}
+            colors={[COLORS.primaryGreen]}
+            tintColor={COLORS.primaryGreen}
+            title="Refreshing feed..."
+            titleColor={COLORS.secondaryText}
           />
         }
         ListEmptyComponent={loading ? null : renderEmptyState()}
@@ -1211,36 +1225,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Header - Mobile Spec: Logo left, notification/message/profile icons right
-  header: {
+  // Top App Bar - 60px height
+  topAppBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    height: 64,
-    backgroundColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    height: 60,
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.borderGray,
   },
-  leftHeader: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  rightHeader: {
-    flex: 1,
+  topAppBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 16,
+  },
+  appName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.primaryGreen,
+    marginLeft: 8,
+  },
+  topAppBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   searchContainer: {
-    flex: 2,
-    alignItems: 'center',
+    flex: 1,
     paddingHorizontal: 16,
   },
   searchBar: {
@@ -1249,8 +1260,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 16,
     height: 40,
-    flex: 1,
-    maxWidth: 300,
+    backgroundColor: COLORS.lightGrayBg,
   },
   searchIcon: {
     marginRight: 8,
@@ -1258,34 +1268,70 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
+    color: COLORS.primaryText,
   },
   notificationButton: {
     position: 'relative',
+    padding: 8,
   },
   notificationBadge: {
     position: 'absolute',
-    top: -5,
-    right: -5,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
+    top: 4,
+    right: 4,
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 2,
   },
   notificationBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
+    color: COLORS.white,
+    fontSize: 9,
     fontWeight: '600',
   },
   
-  // Stories Row Styles - Mobile Spec: Height 100px, horizontal scroll
+  // Feed Filters
+  filterContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderGray,
+  },
+  filterContent: {
+    flexDirection: 'row',
+  },
+  filterTab: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderGray,
+    backgroundColor: COLORS.white,
+  },
+  filterTabActive: {
+    backgroundColor: COLORS.primaryGreen,
+    borderColor: COLORS.primaryGreen,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.secondaryText,
+  },
+  filterTextActive: {
+    color: COLORS.white,
+  },
+  
+  // Stories Row - 100px height
   storiesContainer: {
     height: 100,
     paddingHorizontal: 16,
     paddingVertical: 10,
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.borderGray,
   },
   storiesContent: {
     paddingRight: 16,
@@ -1296,25 +1342,25 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   storyRing: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     padding: 2,
     marginBottom: 4,
   },
   unviewedStoryRing: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: COLORS.primaryGreen,
   },
   viewedStoryRing: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.borderGray,
   },
   ownStoryRing: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: COLORS.primaryGreen,
   },
   storyImageContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 30,
+    borderRadius: 28,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -1322,6 +1368,43 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  plusBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  liveIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  liveText: {
+    color: COLORS.white,
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  storyUsername: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: COLORS.primaryText,
+  },
+  viewedStoryUsername: {
+    color: COLORS.secondaryText,
+  },
+  unviewedStoryUsername: {
+    color: COLORS.primaryText,
+    fontWeight: '600',
   },
   viewedStoryImage: {
     opacity: 0.8,
@@ -1442,24 +1525,22 @@ const styles = StyleSheet.create({
   },
   
   // Feed Container
-  feedContainer: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 80,
-  },
-  
-  // Post Card - Mobile Spec: Full width, white background, border radius 12px
+  // Post Card - 18px border radius, white background, subtle shadow
   postCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    elevation: 3,
+  },
+  feedContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 80,
   },
   
   // Special Badges
@@ -1476,6 +1557,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
     borderLeftWidth: 4,
+    borderColor: COLORS.primaryGreen,
+    backgroundColor: COLORS.lightGreenBg,
   },
   suggestionBadge: {
     flexDirection: 'row',
@@ -1485,30 +1568,32 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     marginBottom: 12,
+    backgroundColor: COLORS.lightGreenBg,
   },
   badgeText: {
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 6,
+    color: COLORS.primaryText,
   },
   badgeButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    backgroundColor: COLORS.primaryGreen,
   },
   badgeButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 14,
     fontWeight: '600',
   },
   
-  // Post Header - Mobile Spec: 48px avatar, username bold, verified badge green
+  // Post Header - 48px avatar
   postHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
-    height: 56,
   },
   authorInfo: {
     flexDirection: 'row',
@@ -1523,7 +1608,7 @@ const styles = StyleSheet.create({
   },
   verifiedAvatar: {
     borderWidth: 2,
-    borderColor: '#2E7D32',
+    borderColor: COLORS.primaryGreen,
   },
   verificationBadge: {
     position: 'absolute',
@@ -1532,7 +1617,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#2E7D32',
+    backgroundColor: COLORS.primaryGreen,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1542,7 +1627,7 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222222',
+    color: COLORS.primaryText,
     marginBottom: 2,
   },
   postMeta: {
@@ -1551,7 +1636,7 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: '#757575',
+    color: COLORS.secondaryText,
     marginRight: 4,
   },
   location: {
@@ -1659,7 +1744,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   
-  // Stats Bar - Mobile Spec: 32px height, 14px text, reaction icons left, comment count right
+  // Stats Bar - 32px height, reaction icons left, comment count right
   statsBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1668,8 +1753,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#F0F0F0',
-    marginBottom: 8,
+    borderColor: COLORS.borderGray,
   },
   reactionsPreview: {
     flexDirection: 'row',
@@ -1677,15 +1761,16 @@ const styles = StyleSheet.create({
   },
   reactionCount: {
     fontSize: 14,
-    color: '#757575',
+    color: COLORS.secondaryText,
     marginLeft: 4,
   },
   commentCount: {
     fontSize: 14,
-    color: '#757575',
+    color: COLORS.secondaryText,
+    fontWeight: '500',
   },
   
-  // Action Buttons - Mobile Spec: 56px height, 24px icons, equal spacing
+  // Action Buttons - 56px height, 24px icons
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1693,19 +1778,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     height: 56,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    marginBottom: 8,
+    borderTopColor: COLORS.borderGray,
   },
   actionButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
+    paddingHorizontal: 12,
   },
   actionText: {
     fontSize: 13,
-    marginTop: 4,
+    marginLeft: 6,
     fontWeight: '500',
-    color: '#757575',
+    color: COLORS.secondaryText,
   },
   
   // Save & Share
@@ -1714,26 +1799,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    marginBottom: 8,
+    borderTopColor: COLORS.borderGray,
   },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   saveText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     marginLeft: 6,
+    color: COLORS.secondaryText,
   },
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   shareText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     marginLeft: 6,
+    color: COLORS.secondaryText,
   },
   
   // Comments Preview

@@ -128,14 +128,17 @@ export const jobsApi = {
       category?: string;
       minSalary?: number;
       maxSalary?: number;
+      signal?: AbortSignal;
     }
   ) => {
     const qs = new URLSearchParams(
       Object.entries(params || {})
-        .filter(([, v]) => v !== undefined)
+        .filter(([, v]) => v !== undefined && v !== 'signal')
         .map(([k, v]) => [k, String(v)])
     ).toString();
-    return request<{ jobs: any[]; pagination: any }>(`/jobs${qs ? '?' + qs : ''}`, {}, token);
+    return request<{ jobs: any[]; pagination: any }>(`/jobs${qs ? '?' + qs : ''}`, { 
+      signal: params?.signal 
+    }, token);
   },
 
   getJob: (id: string, token?: string | null) =>

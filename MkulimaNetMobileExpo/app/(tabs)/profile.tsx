@@ -244,22 +244,29 @@ export default function ProfileScreen() {
     try {
       const token = await getToken();
       const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:5000';
+      
+      // Timeout after 3 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
       const response = await fetch(`${API_URL}/api/profile/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
         setProfileData(data);
       } else {
-        // Use mock data if API fails
-        console.log('Profile API failed, using mock data');
+        console.log('Profile API returned non-OK status');
       }
     } catch (error) {
-      console.log('Error fetching profile:', error);
+      console.log('Error fetching profile:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoadingProfile(false);
     }
